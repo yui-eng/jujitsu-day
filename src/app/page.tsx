@@ -52,6 +52,8 @@ export default function HomePage() {
   const [location, setLocation] = useState<LocationInfo | null>(null);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualInput, setManualInput] = useState("");
   const [selectedTime, setSelectedTime] = useState<TimeOption | null>(null);
   const [selectedBudget, setSelectedBudget] = useState<BudgetOption | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
@@ -101,6 +103,40 @@ export default function HomePage() {
     );
   };
 
+  const handleManualLocation = async () => {
+    if (!manualInput.trim()) return;
+    setLocationLoading(true);
+    setLocationError(null);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(manualInput)}&format=json&accept-language=ja&limit=1&countrycodes=jp`,
+        { headers: { "User-Agent": "JujitsuDayApp/1.0" } }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const result = data[0];
+        const nameParts = (result.display_name as string).split("、");
+        const city = nameParts[0] || manualInput;
+        const prefecture = nameParts[1] || "";
+        setLocation({
+          lat: parseFloat(result.lat),
+          lng: parseFloat(result.lon),
+          city,
+          prefecture,
+        });
+        setManualMode(false);
+      } else {
+        // Use input as-is with Tokyo coordinates as fallback
+        setLocation({ lat: 35.6762, lng: 139.6503, city: manualInput, prefecture: "" });
+        setManualMode(false);
+      }
+    } catch {
+      setLocation({ lat: 35.6762, lng: 139.6503, city: manualInput, prefecture: "" });
+      setManualMode(false);
+    }
+    setLocationLoading(false);
+  };
+
   const handleSubmit = () => {
     if (!location || !selectedTime || !selectedBudget || !selectedMood) return;
     setIsSubmitting(true);
@@ -141,37 +177,76 @@ export default function HomePage() {
             <span className="bg-amber-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">1</span>
             現在地を教えてください
           </h2>
-          {location ? (
+          {location && !manualMode ? (
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold text-gray-800">
-                  {[location.city, location.prefecture].filter(Boolean).join("、") || "位置情報を取得済み"}
+                  📍 {[location.city, location.prefecture].filter(Boolean).join(" ") || "位置情報を取得済み"}
                 </p>
-                <p className="text-sm text-gray-500">
-                  位置情報を取得しました
-                </p>
+                <p className="text-sm text-gray-500">設定済み</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setManualMode(true); setManualInput([location.city, location.prefecture].filter(Boolean).join(" ")); }}
+                  className="text-sm text-gray-500 underline underline-offset-2 hover:text-gray-700"
+                >
+                  編集
+                </button>
+                <button
+                  onClick={getLocation}
+                  className="text-sm text-amber-600 underline underline-offset-2 hover:text-amber-700"
+                >
+                  GPS更新
+                </button>
+              </div>
+            </div>
+          ) : manualMode ? (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleManualLocation()}
+                  placeholder="例：渋谷、大阪市、鎌倉市"
+                  className="flex-1 border-2 border-amber-300 rounded-xl px-4 py-2.5 text-gray-800 text-sm focus:outline-none focus:border-amber-500"
+                  autoFocus
+                />
+                <button
+                  onClick={handleManualLocation}
+                  disabled={locationLoading || !manualInput.trim()}
+                  className="px-4 py-2.5 bg-amber-500 text-white rounded-xl font-semibold text-sm hover:bg-amber-600 disabled:opacity-50"
+                >
+                  {locationLoading ? "⏳" : "決定"}
+                </button>
               </div>
               <button
-                onClick={getLocation}
-                className="text-sm text-amber-600 underline underline-offset-2 hover:text-amber-700"
+                onClick={() => { setManualMode(false); if (!location) getLocation(); }}
+                className="text-xs text-gray-400 hover:text-gray-600"
               >
-                更新
+                ← GPSで取得する
               </button>
             </div>
           ) : (
-            <button
-              onClick={getLocation}
-              disabled={locationLoading}
-              className="w-full py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {locationLoading ? (
-                <>
-                  <span className="animate-spin">⏳</span> 取得中...
-                </>
-              ) : (
-                <>📍 現在地を取得する</>
-              )}
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={getLocation}
+                disabled={locationLoading}
+                className="w-full py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {locationLoading ? (
+                  <><span className="animate-spin">⏳</span> 取得中...</>
+                ) : (
+                  <>📍 現在地を自動取得する</>
+                )}
+              </button>
+              <button
+                onClick={() => setManualMode(true)}
+                className="w-full py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:border-amber-300 hover:text-amber-700 transition-colors"
+              >
+                ✏️ 地名を手動で入力する
+              </button>
+            </div>
           )}
           {locationError && (
             <p className="text-red-500 text-sm mt-2">{locationError}</p>

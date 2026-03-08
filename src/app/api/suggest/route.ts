@@ -50,7 +50,6 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) return [];
 
-  // Choose place types based on mood
   const typesByMood: Record<string, string[]> = {
     active: ["sports_complex", "park", "gym", "swimming_pool", "hiking_area"],
     relaxed: ["spa", "cafe", "park", "library", "art_gallery"],
@@ -77,7 +76,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
           locationRestriction: {
             circle: {
               center: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
-              radius: 50000.0, // 50km ≈ 電車1.5時間圏内
+              radius: 50000.0,
             },
           },
           includedTypes: types,
@@ -126,7 +125,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch weather and nearby places in parallel
     const [weatherResult, nearbyPlaces] = await Promise.allSettled([
       fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=Asia%2FTokyo`
@@ -159,7 +157,6 @@ export async function POST(req: NextRequest) {
 
     const locationStr = [city, prefecture].filter(Boolean).join("、") || "日本";
 
-    // Build nearby places section for prompt
     const placesSection =
       places.length > 0
         ? `\n【電車1.5時間圏内（約50km）の実際の人気スポット】\n${places
@@ -208,29 +205,29 @@ ${placesSection}
   "summary": "今日へのポジティブな一言アドバイス（40文字以内）"
 }`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-    const result2 = await model.generateContent(prompt);
-    const responseText = result2.response.text();
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
 
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("AIからの応答形式が不正です");
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return NextResponse.json({ error: "応答の解析に失敗しました" }, { status: 500 });
+    }
 
-    const result = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonMatch[0]);
 
-    // Attach Google Maps URLs to each suggestion
-    const placeMap = new Map(places.map((p) => [p.name, p]));
-    result.suggestions = result.suggestions.map(
+    parsed.suggestions = parsed.suggestions.map(
       (s: {
         placeName?: string;
         mapsSearchQuery?: string;
         mapsUrl?: string;
         websiteUrl?: string;
       }) => {
-        // Check if placeName matches a real place we fetched
         const matchedPlace = s.placeName
           ? places.find(
               (p) =>
-                p.name.includes(s.placeName!) || s.placeName!.includes(p.name)
+                p.name.includes(s.placeName!) ||
+                s.placeName!.includes(p.name)
             )
           : null;
 
@@ -238,22 +235,17 @@ ${placesSection}
           s.mapsUrl = matchedPlace.mapsUrl;
           if (matchedPlace.websiteUrl) s.websiteUrl = matchedPlace.websiteUrl;
         } else if (s.mapsSearchQuery) {
-          // Generate Google Maps search URL
-          const query = encodeURIComponent(
-            `${s.mapsSearchQuery} ${locationStr}`
-          );
+          const query = encodeURIComponent(`${s.mapsSearchQuery} ${locationStr}`);
           s.mapsUrl = `https://www.google.com/maps/search/${query}`;
         }
-
-        // Clean up internal field
         delete s.mapsSearchQuery;
         return s;
       }
     );
 
-    if (weatherStr) result.weather = weatherStr;
+    if (weatherStr) parsed.weather = weatherStr;
 
-    return NextResponse.json(result);
+    return NextResponse.json(parsed);
   } catch (error) {
     console.error("Suggest API error:", error);
     const message =

@@ -80,23 +80,18 @@ function ResultsContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood }),
         });
-
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || "提案の取得に失敗しました");
+          const err = await res.json();
+          throw new Error(err.error || "提案の取得に失敗しました");
         }
-
-        const result = await res.json();
-        setData(result);
+        const json = await res.json();
+        setData(json);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "予期しないエラーが発生しました"
-        );
+        setError(err instanceof Error ? err.message : "エラーが発生しました");
       } finally {
         setLoading(false);
       }
     };
-
     fetchSuggestions();
   }, [lat, lng, city, prefecture, time, budget, mood]);
 
@@ -145,14 +140,10 @@ function ResultsContent() {
 
         {/* Loading */}
         {loading && (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-4 animate-bounce">✨</div>
-            <p className="text-amber-700 font-bold text-lg">
-              プランを考えています...
-            </p>
-            <p className="text-gray-500 text-sm mt-2">
-              AIがあなたにぴったりの提案を生成中
-            </p>
+          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-5 mb-5 shadow-md text-center">
+            <div className="text-3xl mb-2 animate-bounce">✨</div>
+            <p className="font-semibold">AIがプランを考え中...</p>
+            <p className="text-xs opacity-80 mt-1">少しお待ちください</p>
           </div>
         )}
 
@@ -187,93 +178,47 @@ function ResultsContent() {
             {/* Activity cards */}
             <div className="space-y-4">
               {data.suggestions.map((suggestion, index) => {
-                const catConfig =
-                  categoryConfig[suggestion.category] || {
-                    color: "bg-gray-100 text-gray-600",
-                    icon: "📌",
-                  };
-
+                const catConfig = categoryConfig[suggestion.category] || { color: "bg-gray-100 text-gray-600", icon: "📌" };
                 return (
-                  <div
-                    key={index}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 hover:shadow-md transition-shadow"
-                  >
-                    {/* Title row */}
+                  <div key={index} className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
                     <div className="flex items-start gap-2 mb-2">
-                      <span className="text-2xl mt-0.5 flex-shrink-0">
-                        {catConfig.icon}
-                      </span>
+                      <span className="text-2xl mt-0.5 flex-shrink-0">{catConfig.icon}</span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-gray-800 text-base leading-snug">
-                            {suggestion.title}
-                          </h3>
+                          <h3 className="font-bold text-gray-800 text-base leading-snug">{suggestion.title}</h3>
                           {suggestion.isSeasonalEvent && (
-                            <span className="flex-shrink-0 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
-                              旬
-                            </span>
+                            <span className="flex-shrink-0 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">旬</span>
                           )}
                         </div>
                       </div>
                     </div>
-
-                    <p className="text-gray-600 text-sm leading-relaxed mb-3 ml-9">
-                      {suggestion.description}
-                    </p>
-
-                    {/* Seasonal note */}
+                    <p className="text-gray-600 text-sm leading-relaxed mb-3 ml-9">{suggestion.description}</p>
                     {suggestion.seasonalNote && (
                       <div className="ml-9 bg-orange-50 border border-orange-100 px-3 py-2 rounded-lg mb-3">
-                        <p className="text-orange-700 text-xs leading-relaxed">
-                          🌸 {suggestion.seasonalNote}
-                        </p>
+                        <p className="text-orange-700 text-xs leading-relaxed">🌸 {suggestion.seasonalNote}</p>
                       </div>
                     )}
-
-                    {/* Tags */}
                     <div className="flex flex-wrap gap-2 ml-9">
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-medium ${catConfig.color}`}
-                      >
-                        {suggestion.category}
-                      </span>
-                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">
-                        ⏱️ {suggestion.estimatedTime}
-                      </span>
-                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">
-                        💰 {suggestion.estimatedCost}
-                      </span>
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${catConfig.color}`}>{suggestion.category}</span>
+                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">⏱️ {suggestion.estimatedTime}</span>
+                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">💰 {suggestion.estimatedCost}</span>
                     </div>
-
-                    {/* Tips */}
                     {suggestion.tips && (
                       <div className="mt-3 pt-3 border-t border-gray-100 ml-9">
-                        <p className="text-xs text-gray-500 leading-relaxed">
-                          💡 {suggestion.tips}
-                        </p>
+                        <p className="text-xs text-gray-500 leading-relaxed">💡 {suggestion.tips}</p>
                       </div>
                     )}
-
-                    {/* Link buttons */}
                     {(suggestion.mapsUrl || suggestion.websiteUrl) && (
                       <div className="mt-3 pt-3 border-t border-gray-100 ml-9 flex gap-2 flex-wrap">
                         {suggestion.mapsUrl && (
-                          <a
-                            href={suggestion.mapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium"
-                          >
+                          <a href={suggestion.mapsUrl} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
                             🗺️ Google Mapsで見る
                           </a>
                         )}
                         {suggestion.websiteUrl && (
-                          <a
-                            href={suggestion.websiteUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium"
-                          >
+                          <a href={suggestion.websiteUrl} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium">
                             🌐 公式サイト
                           </a>
                         )}
