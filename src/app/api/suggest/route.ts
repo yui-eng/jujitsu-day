@@ -116,7 +116,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
 
 export async function POST(req: NextRequest) {
   try {
-    const { lat, lng, city, prefecture, time, budget, mood } = await req.json();
+    const { lat, lng, city, prefecture, time, budget, mood, date } = await req.json();
 
     if (!lat || !lng || !time || !budget || !mood) {
       return NextResponse.json(
@@ -132,19 +132,19 @@ export async function POST(req: NextRequest) {
       fetchNearbyPlaces(lat, lng, mood),
     ]);
 
-    let weatherStr = "";
+    let weatherStr = "不明";
     if (weatherResult.status === "fulfilled") {
       const weatherData = weatherResult.value;
       const code = weatherData.current?.weather_code as number;
       const temp = weatherData.current?.temperature_2m as number;
       const desc = weatherCodes[code] || "";
-      if (desc) weatherStr = `${desc}、気温${Math.round(temp)}°C`;
+      if (desc && temp != null) weatherStr = `${desc}、気温${Math.round(temp)}°C`;
     }
 
     const places: PlaceInfo[] =
       nearbyPlaces.status === "fulfilled" ? nearbyPlaces.value : [];
 
-    const today = new Date();
+    const today = date ? new Date(date) : new Date();
     const month = today.getMonth() + 1;
     const day = today.getDate();
     const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][today.getDay()];

@@ -152,6 +152,7 @@ function ResultsContent() {
   const time = searchParams.get("time");
   const budget = searchParams.get("budget");
   const mood = searchParams.get("mood");
+  const date = searchParams.get("date");
 
   // Auto-scroll streaming text box
   useEffect(() => {
@@ -166,7 +167,7 @@ function ResultsContent() {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood }),
+          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date }),
         });
 
         if (!res.ok) {
@@ -244,7 +245,7 @@ function ResultsContent() {
       }
     };
     fetchSuggestions();
-  }, [lat, lng, city, prefecture, time, budget, mood]);
+  }, [lat, lng, city, prefecture, time, budget, mood, date]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 
@@ -295,27 +296,12 @@ function ResultsContent() {
           </div>
         </div>
 
-        {/* Loading + Streaming */}
+        {/* Loading */}
         {loading && (
-          <div className="mb-5">
-            <div className="bg-stone-800 text-white rounded-2xl p-5 shadow-md text-center mb-3">
-              <div className="text-3xl mb-2 animate-bounce">✨</div>
-              <p className="font-semibold tracking-wide">AIがプランを考え中...</p>
-              <p className="text-xs opacity-60 mt-1 tracking-wider">generating your plan</p>
-            </div>
-
-            {streamingText && (
-              <div className="bg-stone-900 rounded-xl p-4 shadow-inner">
-                <p className="text-stone-500 text-xs mb-2 font-mono">● AI stream</p>
-                <div
-                  ref={streamBoxRef}
-                  className="text-emerald-400 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all overflow-y-auto max-h-48"
-                >
-                  {streamingText}
-                  <span className="inline-block w-2 h-3 bg-emerald-400 ml-0.5 animate-pulse" />
-                </div>
-              </div>
-            )}
+          <div className="bg-stone-800 text-white rounded-2xl p-5 shadow-md text-center mb-5">
+            <div className="text-3xl mb-2 animate-bounce">✨</div>
+            <p className="font-semibold tracking-wide">AIがプランを考え中...</p>
+            <p className="text-xs opacity-60 mt-1 tracking-wider">generating your plan</p>
           </div>
         )}
 

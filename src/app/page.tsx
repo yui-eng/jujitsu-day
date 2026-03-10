@@ -57,6 +57,9 @@ export default function HomePage() {
   const [selectedTime, setSelectedTime] = useState<TimeOption | null>(null);
   const [selectedBudget, setSelectedBudget] = useState<BudgetOption | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getLocation = () => {
@@ -148,6 +151,7 @@ export default function HomePage() {
       time: selectedTime,
       budget: selectedBudget,
       mood: selectedMood,
+      date: selectedDate,
     });
 
     router.push(`/results?${params.toString()}`);
@@ -162,19 +166,25 @@ export default function HomePage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-stone-400 text-xs tracking-[0.5em] mb-1">
-            充実
-          </p>
           <h1
             className="text-7xl text-stone-800 leading-none"
-            style={{ fontFamily: "var(--font-dancing)" }}
+            style={{
+              fontFamily: "var(--font-dancing)",
+              textShadow: "0 2px 8px rgba(255,255,255,0.6)",
+            }}
           >
             Joie
           </h1>
-          <p className="text-stone-500 mt-1 text-sm tracking-[0.3em]">
+          <p
+            className="text-stone-600 mt-1 text-sm tracking-[0.3em]"
+            style={{ textShadow: "0 1px 4px rgba(255,255,255,0.8)" }}
+          >
             ジョワ
           </p>
-          <p className="text-stone-300 mt-2 text-[10px] tracking-[0.3em] uppercase">
+          <p
+            className="text-stone-500 mt-2 text-[10px] tracking-[0.3em] uppercase"
+            style={{ textShadow: "0 1px 4px rgba(255,255,255,0.8)" }}
+          >
             Make your day truly yours
           </p>
         </div>
@@ -261,10 +271,24 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Step 2: Time */}
+        {/* Step 2: Date */}
         <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
           <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
             <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">2</span>
+            日付
+          </h2>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full border border-stone-300 rounded-xl px-4 py-2.5 text-stone-700 text-sm focus:outline-none focus:border-stone-500 bg-white/80"
+          />
+        </section>
+
+        {/* Step 3: Time */}
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
             使える時間
           </h2>
           <div className="grid grid-cols-3 gap-2">
@@ -289,7 +313,7 @@ export default function HomePage() {
         {/* Step 3: Budget */}
         <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
           <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
-            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">4</span>
             今日の予算
           </h2>
           <div className="grid grid-cols-2 gap-2">
@@ -313,7 +337,7 @@ export default function HomePage() {
         {/* Step 4: Mood */}
         <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-sm border border-stone-200/60">
           <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
-            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">4</span>
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">5</span>
             今日の気分
           </h2>
           <div className="grid grid-cols-2 gap-2">
@@ -335,6 +359,11 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Disclaimer */}
+        <p className="text-stone-600 text-xs text-center mb-4 leading-relaxed px-4 py-2 rounded-xl bg-white/60 backdrop-blur-sm">
+          ※ 気分の選択はAIへのヒントです。提案内容が希望と異なる場合があります。
+        </p>
+
         {/* Submit */}
         <button
           onClick={handleSubmit}
@@ -349,7 +378,7 @@ export default function HomePage() {
         </button>
 
         {!isFormComplete && (
-          <p className="text-center text-xs text-stone-400 mt-3 tracking-wide">
+          <p className="text-center text-xs text-stone-600 mt-3 tracking-wide inline-block w-full py-1.5 rounded-lg bg-white/60 backdrop-blur-sm">
             すべての項目を選んでください
           </p>
         )}
