@@ -47,7 +47,7 @@ function FadeInCard({
 
   return (
     <div
-      className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50"
+      className="bg-white/75 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-stone-200/60"
       style={{
         opacity: visible ? 1 : 0,
         transform: visible ? "translateY(0px)" : "translateY(20px)",
@@ -249,40 +249,46 @@ function ResultsContent() {
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/70">
+    <main className="min-h-screen">
       <div className="max-w-lg mx-auto px-4 py-6 pb-12">
         {/* Header */}
         <div className="flex items-center mb-5">
           <button
             onClick={() => router.push("/")}
-            className="flex items-center gap-1 text-amber-600 hover:text-amber-700 font-medium mr-auto"
+            className="flex items-center gap-1 text-stone-500 hover:text-stone-800 font-medium mr-auto tracking-wide text-sm"
           >
             ← 戻る
           </button>
         </div>
 
-        <h1 className="text-2xl font-bold text-amber-800 mb-4">
-          今日の充実プラン ✨
+        <h1
+          className="text-5xl text-stone-800 mb-1 leading-tight"
+          style={{ fontFamily: "var(--font-dancing)" }}
+        >
+          Joie
         </h1>
+        <p className="text-stone-400 text-xs tracking-[0.3em] uppercase mb-4">
+          Today&apos;s plan
+        </p>
 
         {/* Preferences summary */}
-        <div className="bg-white rounded-2xl p-4 mb-5 shadow-sm border border-amber-100">
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 mb-5 shadow-sm border border-stone-200/60">
           <div className="flex flex-wrap gap-2">
-            <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-medium">
+            <span className="bg-stone-100 text-stone-700 px-3 py-1 rounded-full text-sm font-medium">
               📍 {locationLabel}
             </span>
             {time && (
-              <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+              <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
                 ⏱️ {timeLabels[time]}
               </span>
             )}
             {budget && (
-              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+              <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
                 💰 {budgetLabels[budget]}
               </span>
             )}
             {mood && (
-              <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+              <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
                 {moodLabels[mood]}
               </span>
             )}
@@ -292,21 +298,21 @@ function ResultsContent() {
         {/* Loading + Streaming */}
         {loading && (
           <div className="mb-5">
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-5 shadow-md text-center mb-3">
+            <div className="bg-stone-800 text-white rounded-2xl p-5 shadow-md text-center mb-3">
               <div className="text-3xl mb-2 animate-bounce">✨</div>
-              <p className="font-semibold">AIがプランを考え中...</p>
-              <p className="text-xs opacity-80 mt-1">リアルタイムで生成しています</p>
+              <p className="font-semibold tracking-wide">AIがプランを考え中...</p>
+              <p className="text-xs opacity-60 mt-1 tracking-wider">generating your plan</p>
             </div>
 
             {streamingText && (
-              <div className="bg-gray-900 rounded-xl p-4 shadow-inner">
-                <p className="text-gray-500 text-xs mb-2 font-mono">● AIの思考ストリーム</p>
+              <div className="bg-stone-900 rounded-xl p-4 shadow-inner">
+                <p className="text-stone-500 text-xs mb-2 font-mono">● AI stream</p>
                 <div
                   ref={streamBoxRef}
-                  className="text-green-400 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all overflow-y-auto max-h-48"
+                  className="text-emerald-400 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all overflow-y-auto max-h-48"
                 >
                   {streamingText}
-                  <span className="inline-block w-2 h-3 bg-green-400 ml-0.5 animate-pulse" />
+                  <span className="inline-block w-2 h-3 bg-emerald-400 ml-0.5 animate-pulse" />
                 </div>
               </div>
             )}
@@ -331,12 +337,17 @@ function ResultsContent() {
         {data && (
           <>
             {/* Summary banner */}
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-4 mb-5 shadow-md">
-              <p className="text-xs opacity-80 mb-1 font-medium">AIからの一言</p>
-              <p className="font-semibold leading-relaxed">{data.summary}</p>
+            <div className="bg-stone-800 text-white rounded-2xl p-4 mb-5 shadow-md">
+              <p
+                className="text-xs opacity-60 mb-1 tracking-widest uppercase"
+                style={{ fontFamily: "var(--font-cormorant)", fontStyle: "italic" }}
+              >
+                from AI
+              </p>
+              <p className="font-medium leading-relaxed">{data.summary}</p>
               {data.weather && (
-                <p className="text-xs opacity-80 mt-2">
-                  🌤️ 現在の天気: {data.weather}
+                <p className="text-xs opacity-60 mt-2">
+                  🌤️ {data.weather}
                 </p>
               )}
             </div>
@@ -344,7 +355,7 @@ function ResultsContent() {
             {/* Activity cards */}
             <div className="space-y-4">
               {data.suggestions.map((suggestion, index) => {
-                const catConfig = categoryConfig[suggestion.category] || { color: "bg-gray-100 text-gray-600", icon: "📌" };
+                const catConfig = categoryConfig[suggestion.category] || { color: "bg-stone-100 text-stone-600", icon: "📌" };
                 return (
                   <FadeInCard key={index} index={index} suggestion={suggestion} catConfig={catConfig} />
                 );
@@ -355,7 +366,7 @@ function ResultsContent() {
             <div className="mt-8 text-center">
               <button
                 onClick={() => router.push("/")}
-                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-8 py-3 rounded-2xl font-bold hover:from-amber-600 hover:to-orange-600 transition-all shadow-md shadow-amber-200 active:scale-[0.98]"
+                className="bg-stone-800 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
               >
                 別の条件で探す
               </button>
@@ -371,7 +382,7 @@ export default function ResultsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/70 flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
             <div className="text-5xl mb-4 animate-bounce">✨</div>
             <p className="text-amber-600 font-medium">読み込み中...</p>
