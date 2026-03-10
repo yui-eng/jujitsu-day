@@ -36,7 +36,7 @@ const moodLabels: Record<string, string> = {
   foodie: "グルメ（美食・グルメ探索・カフェ・スイーツ）",
 };
 
-interface PlaceInfo {
+export interface PlaceInfo {
   name: string;
   address: string;
   mapsUrl: string;
@@ -206,46 +206,28 @@ ${placesSection}
 }`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await model.generateContentStream(prompt);
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return NextResponse.json({ error: "応答の解析に失敗しました" }, { status: 500 });
-    }
+    // Stream response: first line is metadata, then AI text chunks
+    const encoder = new TextEncoder();
+    const meta = JSON.stringify({ weather: weatherStr, places });
 
-    const parsed = JSON.parse(jsonMatch[0]);
-
-    parsed.suggestions = parsed.suggestions.map(
-      (s: {
-        placeName?: string;
-        mapsSearchQuery?: string;
-        mapsUrl?: string;
-        websiteUrl?: string;
-      }) => {
-        const matchedPlace = s.placeName
-          ? places.find(
-              (p) =>
-                p.name.includes(s.placeName!) ||
-                s.placeName!.includes(p.name)
-            )
-          : null;
-
-        if (matchedPlace) {
-          s.mapsUrl = matchedPlace.mapsUrl;
-          if (matchedPlace.websiteUrl) s.websiteUrl = matchedPlace.websiteUrl;
-        } else if (s.mapsSearchQuery) {
-          const query = encodeURIComponent(`${s.mapsSearchQuery} ${locationStr}`);
-          s.mapsUrl = `https://www.google.com/maps/search/${query}`;
+    const stream = new ReadableStream({
+      async start(controller) {
+        controller.enqueue(encoder.encode(`__META__${meta}\n`));
+        try {
+          for await (const chunk of result.stream) {
+            controller.enqueue(encoder.encode(chunk.text()));
+          }
+        } finally {
+          controller.close();
         }
-        delete s.mapsSearchQuery;
-        return s;
-      }
-    );
+      },
+    });
 
-    if (weatherStr) parsed.weather = weatherStr;
-
-    return NextResponse.json(parsed);
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   } catch (error) {
     console.error("Suggest API error:", error);
     let message = "提案の生成に失敗しました。もう一度お試しください。";

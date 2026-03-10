@@ -158,7 +158,7 @@ export default function HomePage() {
     location && selectedTime && selectedBudget && selectedMood;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/70">
       <div className="max-w-lg mx-auto px-4 py-8 pb-12">
         {/* Header */}
         <div className="text-center mb-8">

@@ -1,7 +1,8 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
+import type { PlaceInfo } from "../api/suggest/route";
 
 interface Suggestion {
   title: string;
@@ -15,6 +16,7 @@ interface Suggestion {
   placeName?: string;
   mapsUrl?: string;
   websiteUrl?: string;
+  mapsSearchQuery?: string;
 }
 
 interface SuggestResponse {
@@ -33,15 +35,25 @@ function FadeInCard({
   catConfig: { color: string; icon: string };
 }) {
   const [visible, setVisible] = useState(false);
+
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), index * 120);
-    return () => clearTimeout(t);
+    // Double rAF ensures the initial opacity:0 render is painted before transitioning
+    const raf = requestAnimationFrame(() => {
+      const t = setTimeout(() => setVisible(true), index * 150);
+      return () => clearTimeout(t);
+    });
+    return () => cancelAnimationFrame(raf);
   }, [index]);
 
   return (
     <div
-      className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 transition-all duration-500"
-      style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)" }}
+      className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0px)" : "translateY(20px)",
+        transition: "opacity 0.5s ease, transform 0.5s ease",
+        willChange: "opacity, transform",
+      }}
     >
       <div className="flex items-start gap-2 mb-2">
         <span className="text-2xl mt-0.5 flex-shrink-0">{catConfig.icon}</span>
@@ -130,6 +142,8 @@ function ResultsContent() {
   const [data, setData] = useState<SuggestResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [streamingText, setStreamingText] = useState("");
+  const streamBoxRef = useRef<HTMLDivElement>(null);
 
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
@@ -139,6 +153,13 @@ function ResultsContent() {
   const budget = searchParams.get("budget");
   const mood = searchParams.get("mood");
 
+  // Auto-scroll streaming text box
+  useEffect(() => {
+    if (streamBoxRef.current) {
+      streamBoxRef.current.scrollTop = streamBoxRef.current.scrollHeight;
+    }
+  }, [streamingText]);
+
   useEffect(() => {
     const fetchSuggestions = async () => {
       try {
@@ -147,12 +168,75 @@ function ResultsContent() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood }),
         });
+
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.error || "提案の取得に失敗しました");
         }
-        const json = await res.json();
-        setData(json);
+
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
+        let metaParsed = false;
+        let weatherFromMeta = "";
+        let placesFromMeta: PlaceInfo[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+
+          if (!metaParsed) {
+            accumulated += chunk;
+            const nlIndex = accumulated.indexOf("\n");
+            if (nlIndex !== -1) {
+              const metaLine = accumulated.substring(0, nlIndex);
+              if (metaLine.startsWith("__META__")) {
+                const meta = JSON.parse(metaLine.slice(8));
+                weatherFromMeta = meta.weather || "";
+                placesFromMeta = meta.places || [];
+                metaParsed = true;
+                accumulated = accumulated.substring(nlIndex + 1);
+                setStreamingText(accumulated);
+              }
+            }
+          } else {
+            accumulated += chunk;
+            setStreamingText(accumulated);
+          }
+        }
+
+        // Parse final JSON
+        const jsonMatch = accumulated.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("応答の解析に失敗しました");
+
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        // Enrich suggestions with places data
+        const locationStr = [city, prefecture].filter(Boolean).join("、") || "日本";
+        parsed.suggestions = parsed.suggestions.map((s: Suggestion) => {
+          const matchedPlace = s.placeName
+            ? placesFromMeta.find(
+                (p) => p.name.includes(s.placeName!) || s.placeName!.includes(p.name)
+              )
+            : null;
+
+          if (matchedPlace) {
+            s.mapsUrl = matchedPlace.mapsUrl;
+            if (matchedPlace.websiteUrl) s.websiteUrl = matchedPlace.websiteUrl;
+          } else if (s.mapsSearchQuery) {
+            const query = encodeURIComponent(`${s.mapsSearchQuery} ${locationStr}`);
+            s.mapsUrl = `https://www.google.com/maps/search/${query}`;
+          }
+          delete s.mapsSearchQuery;
+          return s;
+        });
+
+        if (weatherFromMeta) parsed.weather = weatherFromMeta;
+
+        setStreamingText("");
+        setData(parsed);
       } catch (err) {
         setError(err instanceof Error ? err.message : "エラーが発生しました");
       } finally {
@@ -165,7 +249,7 @@ function ResultsContent() {
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/70">
       <div className="max-w-lg mx-auto px-4 py-6 pb-12">
         {/* Header */}
         <div className="flex items-center mb-5">
@@ -205,12 +289,27 @@ function ResultsContent() {
           </div>
         </div>
 
-        {/* Loading */}
+        {/* Loading + Streaming */}
         {loading && (
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-5 mb-5 shadow-md text-center">
-            <div className="text-3xl mb-2 animate-bounce">✨</div>
-            <p className="font-semibold">AIがプランを考え中...</p>
-            <p className="text-xs opacity-80 mt-1">少しお待ちください</p>
+          <div className="mb-5">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl p-5 shadow-md text-center mb-3">
+              <div className="text-3xl mb-2 animate-bounce">✨</div>
+              <p className="font-semibold">AIがプランを考え中...</p>
+              <p className="text-xs opacity-80 mt-1">リアルタイムで生成しています</p>
+            </div>
+
+            {streamingText && (
+              <div className="bg-gray-900 rounded-xl p-4 shadow-inner">
+                <p className="text-gray-500 text-xs mb-2 font-mono">● AIの思考ストリーム</p>
+                <div
+                  ref={streamBoxRef}
+                  className="text-green-400 font-mono text-xs leading-relaxed whitespace-pre-wrap break-all overflow-y-auto max-h-48"
+                >
+                  {streamingText}
+                  <span className="inline-block w-2 h-3 bg-green-400 ml-0.5 animate-pulse" />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -272,7 +371,7 @@ export default function ResultsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/70 flex items-center justify-center">
           <div className="text-center">
             <div className="text-5xl mb-4 animate-bounce">✨</div>
             <p className="text-amber-600 font-medium">読み込み中...</p>
