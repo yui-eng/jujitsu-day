@@ -23,6 +23,73 @@ interface SuggestResponse {
   weather?: string;
 }
 
+function FadeInCard({
+  suggestion,
+  index,
+  catConfig,
+}: {
+  suggestion: Suggestion;
+  index: number;
+  catConfig: { color: string; icon: string };
+}) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), index * 120);
+    return () => clearTimeout(t);
+  }, [index]);
+
+  return (
+    <div
+      className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50 transition-all duration-500"
+      style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(16px)" }}
+    >
+      <div className="flex items-start gap-2 mb-2">
+        <span className="text-2xl mt-0.5 flex-shrink-0">{catConfig.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-bold text-gray-800 text-base leading-snug">{suggestion.title}</h3>
+            {suggestion.isSeasonalEvent && (
+              <span className="flex-shrink-0 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">旬</span>
+            )}
+          </div>
+        </div>
+      </div>
+      <p className="text-gray-600 text-sm leading-relaxed mb-3 ml-9">{suggestion.description}</p>
+      {suggestion.seasonalNote && (
+        <div className="ml-9 bg-orange-50 border border-orange-100 px-3 py-2 rounded-lg mb-3">
+          <p className="text-orange-700 text-xs leading-relaxed">🌸 {suggestion.seasonalNote}</p>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2 ml-9">
+        <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${catConfig.color}`}>{suggestion.category}</span>
+        <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">⏱️ {suggestion.estimatedTime}</span>
+        <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">💰 {suggestion.estimatedCost}</span>
+      </div>
+      {suggestion.tips && (
+        <div className="mt-3 pt-3 border-t border-gray-100 ml-9">
+          <p className="text-xs text-gray-500 leading-relaxed">💡 {suggestion.tips}</p>
+        </div>
+      )}
+      {(suggestion.mapsUrl || suggestion.websiteUrl) && (
+        <div className="mt-3 pt-3 border-t border-gray-100 ml-9 flex gap-2 flex-wrap">
+          {suggestion.mapsUrl && (
+            <a href={suggestion.mapsUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
+              🗺️ Google Mapsで見る
+            </a>
+          )}
+          {suggestion.websiteUrl && (
+            <a href={suggestion.websiteUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium">
+              🌐 公式サイト
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const categoryConfig: Record<string, { color: string; icon: string }> = {
   アウトドア: { color: "bg-green-100 text-green-700", icon: "🌲" },
   "文化・芸術": { color: "bg-purple-100 text-purple-700", icon: "🎭" },
@@ -180,51 +247,7 @@ function ResultsContent() {
               {data.suggestions.map((suggestion, index) => {
                 const catConfig = categoryConfig[suggestion.category] || { color: "bg-gray-100 text-gray-600", icon: "📌" };
                 return (
-                  <div key={index} className="bg-white rounded-2xl p-5 shadow-sm border border-amber-50">
-                    <div className="flex items-start gap-2 mb-2">
-                      <span className="text-2xl mt-0.5 flex-shrink-0">{catConfig.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-gray-800 text-base leading-snug">{suggestion.title}</h3>
-                          {suggestion.isSeasonalEvent && (
-                            <span className="flex-shrink-0 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">旬</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-gray-600 text-sm leading-relaxed mb-3 ml-9">{suggestion.description}</p>
-                    {suggestion.seasonalNote && (
-                      <div className="ml-9 bg-orange-50 border border-orange-100 px-3 py-2 rounded-lg mb-3">
-                        <p className="text-orange-700 text-xs leading-relaxed">🌸 {suggestion.seasonalNote}</p>
-                      </div>
-                    )}
-                    <div className="flex flex-wrap gap-2 ml-9">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${catConfig.color}`}>{suggestion.category}</span>
-                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">⏱️ {suggestion.estimatedTime}</span>
-                      <span className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">💰 {suggestion.estimatedCost}</span>
-                    </div>
-                    {suggestion.tips && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 ml-9">
-                        <p className="text-xs text-gray-500 leading-relaxed">💡 {suggestion.tips}</p>
-                      </div>
-                    )}
-                    {(suggestion.mapsUrl || suggestion.websiteUrl) && (
-                      <div className="mt-3 pt-3 border-t border-gray-100 ml-9 flex gap-2 flex-wrap">
-                        {suggestion.mapsUrl && (
-                          <a href={suggestion.mapsUrl} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
-                            🗺️ Google Mapsで見る
-                          </a>
-                        )}
-                        {suggestion.websiteUrl && (
-                          <a href={suggestion.websiteUrl} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium">
-                            🌐 公式サイト
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <FadeInCard key={index} index={index} suggestion={suggestion} catConfig={catConfig} />
                 );
               })}
             </div>

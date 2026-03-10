@@ -248,8 +248,16 @@ ${placesSection}
     return NextResponse.json(parsed);
   } catch (error) {
     console.error("Suggest API error:", error);
-    const message =
-      error instanceof Error ? error.message : "提案の生成に失敗しました";
+    let message = "提案の生成に失敗しました。もう一度お試しください。";
+    if (error instanceof Error) {
+      if (error.message.includes("503")) {
+        message = "AIサーバーが混雑しています。少し待ってから再試行してください。";
+      } else if (error.message.includes("429")) {
+        message = "AIの利用上限に達しました。しばらく時間をおいてから再試行してください。";
+      } else if (error.message.includes("404")) {
+        message = "AIモデルに接続できませんでした。管理者にお問い合わせください。";
+      }
+    }
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
