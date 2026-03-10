@@ -57,6 +57,9 @@ export default function HomePage() {
   const [selectedTime, setSelectedTime] = useState<TimeOption | null>(null);
   const [selectedBudget, setSelectedBudget] = useState<BudgetOption | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getLocation = () => {
@@ -126,7 +129,6 @@ export default function HomePage() {
         });
         setManualMode(false);
       } else {
-        // Use input as-is with Tokyo coordinates as fallback
         setLocation({ lat: 35.6762, lng: 139.6503, city: manualInput, prefecture: "" });
         setManualMode(false);
       }
@@ -149,6 +151,7 @@ export default function HomePage() {
       time: selectedTime,
       budget: selectedBudget,
       mood: selectedMood,
+      date: selectedDate,
     });
 
     router.push(`/results?${params.toString()}`);
@@ -158,43 +161,58 @@ export default function HomePage() {
     location && selectedTime && selectedBudget && selectedMood;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-orange-50/70 via-amber-50/60 to-yellow-50/70">
-      <div className="max-w-lg mx-auto px-4 py-8 pb-12">
+    <main className="min-h-screen">
+      <div className="max-w-lg mx-auto px-4 py-10 pb-12">
+
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">✨</div>
-          <h1 className="text-4xl font-bold text-amber-800 tracking-tight">
-            充実DAY
+          <h1
+            className="text-7xl text-stone-800 leading-none"
+            style={{
+              fontFamily: "var(--font-dancing)",
+              textShadow: "0 2px 8px rgba(255,255,255,0.6)",
+            }}
+          >
+            Joie
           </h1>
-          <p className="text-amber-600 mt-2 text-base">
-            暇な1日をもっと楽しく過ごそう
+          <p
+            className="text-stone-600 mt-1 text-sm tracking-[0.3em]"
+            style={{ textShadow: "0 1px 4px rgba(255,255,255,0.8)" }}
+          >
+            ジョワ
+          </p>
+          <p
+            className="text-stone-500 mt-2 text-[10px] tracking-[0.3em] uppercase"
+            style={{ textShadow: "0 1px 4px rgba(255,255,255,0.8)" }}
+          >
+            Make your day truly yours
           </p>
         </div>
 
         {/* Step 1: Location */}
-        <section className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-amber-100">
-          <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
-            <span className="bg-amber-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">1</span>
-            現在地を教えてください
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">1</span>
+            現在地
           </h2>
           {location && !manualMode ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-semibold text-gray-800">
+                <p className="font-semibold text-stone-800">
                   📍 {[location.city, location.prefecture].filter(Boolean).join(" ") || "位置情報を取得済み"}
                 </p>
-                <p className="text-sm text-gray-500">設定済み</p>
+                <p className="text-sm text-stone-400">設定済み</p>
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => { setManualMode(true); setManualInput([location.city, location.prefecture].filter(Boolean).join(" ")); }}
-                  className="text-sm text-gray-500 underline underline-offset-2 hover:text-gray-700"
+                  className="text-sm text-stone-400 underline underline-offset-2 hover:text-stone-600"
                 >
                   編集
                 </button>
                 <button
                   onClick={getLocation}
-                  className="text-sm text-amber-600 underline underline-offset-2 hover:text-amber-700"
+                  className="text-sm text-stone-600 underline underline-offset-2 hover:text-stone-800"
                 >
                   GPS更新
                 </button>
@@ -209,20 +227,20 @@ export default function HomePage() {
                   onChange={(e) => setManualInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleManualLocation()}
                   placeholder="例：渋谷、大阪市、鎌倉市"
-                  className="flex-1 border-2 border-amber-300 rounded-xl px-4 py-2.5 text-gray-800 text-sm focus:outline-none focus:border-amber-500"
+                  className="flex-1 border border-stone-300 rounded-xl px-4 py-2.5 text-stone-800 text-sm focus:outline-none focus:border-stone-500 bg-white/80"
                   autoFocus
                 />
                 <button
                   onClick={handleManualLocation}
                   disabled={locationLoading || !manualInput.trim()}
-                  className="px-4 py-2.5 bg-amber-500 text-white rounded-xl font-semibold text-sm hover:bg-amber-600 disabled:opacity-50"
+                  className="px-4 py-2.5 bg-stone-700 text-white rounded-xl font-semibold text-sm hover:bg-stone-800 disabled:opacity-50"
                 >
                   {locationLoading ? "⏳" : "決定"}
                 </button>
               </div>
               <button
                 onClick={() => { setManualMode(false); if (!location) getLocation(); }}
-                className="text-xs text-gray-400 hover:text-gray-600"
+                className="text-xs text-stone-400 hover:text-stone-600"
               >
                 ← GPSで取得する
               </button>
@@ -232,7 +250,7 @@ export default function HomePage() {
               <button
                 onClick={getLocation}
                 disabled={locationLoading}
-                className="w-full py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 active:bg-amber-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-stone-700 text-white rounded-xl font-semibold hover:bg-stone-800 active:bg-stone-900 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 tracking-wide"
               >
                 {locationLoading ? (
                   <><span className="animate-spin">⏳</span> 取得中...</>
@@ -242,7 +260,7 @@ export default function HomePage() {
               </button>
               <button
                 onClick={() => setManualMode(true)}
-                className="w-full py-2.5 border-2 border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:border-amber-300 hover:text-amber-700 transition-colors"
+                className="w-full py-2.5 border border-stone-200 text-stone-500 rounded-xl text-sm font-medium hover:border-stone-400 hover:text-stone-700 transition-colors bg-white/50"
               >
                 ✏️ 地名を手動で入力する
               </button>
@@ -253,96 +271,115 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Step 2: Time */}
-        <section className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-amber-100">
-          <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
-            <span className="bg-amber-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">2</span>
-            使える時間は？
+        {/* Step 2: Date */}
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">2</span>
+            日付
+          </h2>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full border border-stone-300 rounded-xl px-4 py-2.5 text-stone-700 text-sm focus:outline-none focus:border-stone-500 bg-white/80"
+          />
+        </section>
+
+        {/* Step 3: Time */}
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">3</span>
+            使える時間
           </h2>
           <div className="grid grid-cols-3 gap-2">
             {timeOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setSelectedTime(opt.value)}
-                className={`py-3 px-2 rounded-xl border-2 transition-all text-center ${
+                className={`py-3 px-2 rounded-xl border transition-all text-center ${
                   selectedTime === opt.value
-                    ? "border-amber-500 bg-amber-50 text-amber-700"
-                    : "border-gray-200 text-gray-600 hover:border-amber-300 hover:bg-amber-50/50"
+                    ? "border-stone-600 bg-stone-50 text-stone-800"
+                    : "border-stone-200 text-stone-500 hover:border-stone-400 hover:bg-stone-50/50 bg-white/50"
                 }`}
               >
                 <div className="text-xl mb-1">{opt.icon}</div>
-                <div className="font-bold text-sm">{opt.label}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                <div className="font-semibold text-sm">{opt.label}</div>
+                <div className="text-xs text-stone-400 mt-0.5">{opt.desc}</div>
               </button>
             ))}
           </div>
         </section>
 
         {/* Step 3: Budget */}
-        <section className="bg-white rounded-2xl p-5 mb-4 shadow-sm border border-amber-100">
-          <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
-            <span className="bg-amber-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">3</span>
-            今日の予算は？
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">4</span>
+            今日の予算
           </h2>
           <div className="grid grid-cols-2 gap-2">
             {budgetOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setSelectedBudget(opt.value)}
-                className={`py-3 px-4 rounded-xl border-2 transition-all text-left ${
+                className={`py-3 px-4 rounded-xl border transition-all text-left ${
                   selectedBudget === opt.value
-                    ? "border-amber-500 bg-amber-50 text-amber-700"
-                    : "border-gray-200 text-gray-600 hover:border-amber-300 hover:bg-amber-50/50"
+                    ? "border-stone-600 bg-stone-50 text-stone-800"
+                    : "border-stone-200 text-stone-500 hover:border-stone-400 hover:bg-stone-50/50 bg-white/50"
                 }`}
               >
-                <div className="font-bold">{opt.label}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                <div className="font-semibold">{opt.label}</div>
+                <div className="text-xs text-stone-400 mt-0.5">{opt.desc}</div>
               </button>
             ))}
           </div>
         </section>
 
         {/* Step 4: Mood */}
-        <section className="bg-white rounded-2xl p-5 mb-6 shadow-sm border border-amber-100">
-          <h2 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
-            <span className="bg-amber-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">4</span>
-            今日の気分は？
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-6 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">5</span>
+            今日の気分
           </h2>
           <div className="grid grid-cols-2 gap-2">
             {moodOptions.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setSelectedMood(opt.value)}
-                className={`py-3 px-4 rounded-xl border-2 transition-all text-left ${
+                className={`py-3 px-4 rounded-xl border transition-all text-left ${
                   selectedMood === opt.value
-                    ? "border-amber-500 bg-amber-50 text-amber-700"
-                    : "border-gray-200 text-gray-600 hover:border-amber-300 hover:bg-amber-50/50"
+                    ? "border-stone-600 bg-stone-50 text-stone-800"
+                    : "border-stone-200 text-stone-500 hover:border-stone-400 hover:bg-stone-50/50 bg-white/50"
                 }`}
               >
                 <div className="text-2xl">{opt.emoji}</div>
-                <div className="font-bold text-sm mt-1">{opt.label}</div>
-                <div className="text-xs text-gray-500">{opt.desc}</div>
+                <div className="font-semibold text-sm mt-1">{opt.label}</div>
+                <div className="text-xs text-stone-400">{opt.desc}</div>
               </button>
             ))}
           </div>
         </section>
 
+        {/* Disclaimer */}
+        <p className="text-stone-600 text-xs text-center mb-4 leading-relaxed px-4 py-2 rounded-xl bg-white/60 backdrop-blur-sm">
+          ※ 気分の選択はAIへのヒントです。提案内容が希望と異なる場合があります。
+        </p>
+
         {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={!isFormComplete || isSubmitting}
-          className={`w-full py-4 rounded-2xl font-bold text-lg transition-all ${
+          className={`w-full py-4 rounded-2xl font-semibold text-base tracking-widest uppercase transition-all ${
             isFormComplete
-              ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-200 active:scale-[0.98]"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              ? "bg-stone-800 text-white hover:bg-stone-900 shadow-lg active:scale-[0.98]"
+              : "bg-stone-200 text-stone-400 cursor-not-allowed"
           }`}
         >
-          {isSubmitting ? "✨ プランを考え中..." : "今日の充実プランを見る →"}
+          {isSubmitting ? "— 考え中 —" : "今日のプランを見る"}
         </button>
 
         {!isFormComplete && (
-          <p className="text-center text-sm text-gray-400 mt-3">
-            すべての項目を入力してください
+          <p className="text-center text-xs text-stone-600 mt-3 tracking-wide inline-block w-full py-1.5 rounded-lg bg-white/60 backdrop-blur-sm">
+            すべての項目を選んでください
           </p>
         )}
       </div>

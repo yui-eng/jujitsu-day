@@ -1,5 +1,21 @@
 import type { Metadata } from "next";
+import { Dancing_Script, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
+
+const dancing = Dancing_Script({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-dancing",
+  display: "swap",
+});
+
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-cormorant",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "充実DAY - 暇な1日をもっと楽しく",
@@ -13,8 +29,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="antialiased">
-        {/* Background image with whitish filter */}
+      <body className={`${dancing.variable} ${cormorant.variable} antialiased`}>
+        {/* Background image */}
         <div
           style={{
             position: "fixed",
@@ -22,16 +38,16 @@ export default function RootLayout({
             backgroundImage: "url('/bg.jpg')",
             backgroundSize: "cover",
             backgroundPosition: "center",
-            filter: "brightness(1.05) saturate(0.75)",
+            filter: "brightness(1.05) saturate(0.8)",
             zIndex: -2,
           }}
         />
-        {/* White overlay to make it feel light and airy */}
+        {/* Subtle white overlay */}
         <div
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(255, 255, 255, 0.58)",
+            background: "rgba(255, 255, 255, 0.22)",
             zIndex: -1,
           }}
         />
