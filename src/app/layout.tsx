@@ -13,7 +13,30 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {/* Background image with whitish filter */}
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundImage: "url('/bg.jpg')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "brightness(1.05) saturate(0.75)",
+            zIndex: -2,
+          }}
+        />
+        {/* White overlay to make it feel light and airy */}
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(255, 255, 255, 0.58)",
+            zIndex: -1,
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
