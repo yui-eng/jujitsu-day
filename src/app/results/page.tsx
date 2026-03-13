@@ -143,7 +143,16 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  const [retryKey, setRetryKey] = useState(0);
   const streamBoxRef = useRef<HTMLDivElement>(null);
+
+  const handleRegenerate = () => {
+    setData(null);
+    setError(null);
+    setLoading(true);
+    setStreamingText("");
+    setRetryKey((k) => k + 1);
+  };
 
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
@@ -245,7 +254,7 @@ function ResultsContent() {
       }
     };
     fetchSuggestions();
-  }, [lat, lng, city, prefecture, time, budget, mood, date]);
+  }, [lat, lng, city, prefecture, time, budget, mood, date, retryKey]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 
@@ -349,10 +358,16 @@ function ResultsContent() {
             </div>
 
             {/* Retry */}
-            <div className="mt-8 text-center">
+            <div className="mt-8 flex gap-3 justify-center">
+              <button
+                onClick={handleRegenerate}
+                className="bg-white/80 border border-stone-300 text-stone-700 px-6 py-3 rounded-2xl font-semibold hover:bg-white transition-all shadow-sm text-sm active:scale-[0.98]"
+              >
+                🔄 再生成
+              </button>
               <button
                 onClick={() => router.push("/")}
-                className="bg-stone-800 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
+                className="bg-stone-800 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
               >
                 別の条件で探す
               </button>
