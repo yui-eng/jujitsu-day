@@ -36,6 +36,13 @@ const moodLabels: Record<string, string> = {
   foodie: "グルメ（美食・グルメ探索・カフェ・スイーツ）",
 };
 
+const companionLabels: Record<string, string> = {
+  solo: "ひとり（自由・マイペース）",
+  friends: "友達と（グループ・みんなで楽しく）",
+  couple: "恋人と（デート・ロマンチックな雰囲気）",
+  family: "家族と（子連れOK・幅広い年齢層）",
+};
+
 export interface PlaceInfo {
   name: string;
   address: string;
@@ -116,7 +123,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
 
 export async function POST(req: NextRequest) {
   try {
-    const { lat, lng, city, prefecture, time, budget, mood, date } = await req.json();
+    const { lat, lng, city, prefecture, time, budget, mood, date, companion } = await req.json();
 
     if (!lat || !lng || !time || !budget || !mood) {
       return NextResponse.json(
@@ -175,6 +182,7 @@ export async function POST(req: NextRequest) {
 - 使える時間: ${timeLabels[time] || time}
 - 予算: ${budgetLabels[budget] || budget}
 - 気分: ${moodLabels[mood] || mood}
+${companion ? `- 同行者: ${companionLabels[companion] || companion}` : ""}
 ${placesSection}
 【提案の条件】
 1. 季節特有のイベント・旬の体験を必ず2〜3個含める（${month}月なら${getSeasonalHints(month)}）

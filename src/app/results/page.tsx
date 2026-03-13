@@ -153,6 +153,7 @@ function ResultsContent() {
   const budget = searchParams.get("budget");
   const mood = searchParams.get("mood");
   const date = searchParams.get("date");
+  const companion = searchParams.get("companion");
 
   // Auto-scroll streaming text box
   useEffect(() => {
@@ -167,7 +168,7 @@ function ResultsContent() {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date }),
+          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, companion }),
         });
 
         if (!res.ok) {
@@ -291,6 +292,11 @@ function ResultsContent() {
             {mood && (
               <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
                 {moodLabels[mood]}
+              </span>
+            )}
+            {companion && (
+              <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
+                {companion === "solo" ? "🧍 ひとり" : companion === "friends" ? "👯 友達と" : companion === "couple" ? "💑 恋人と" : "👨‍👩‍👦 家族と"}
               </span>
             )}
           </div>
