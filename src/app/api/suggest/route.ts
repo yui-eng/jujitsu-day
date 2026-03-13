@@ -199,11 +199,18 @@ ${placesSection}
       "seasonalNote": "季節のおすすめ理由（isSeasonalEventがtrueの場合のみ、30文字以内）",
       "tips": "実践的なアドバイス・注意点（40文字以内）",
       "placeName": "具体的な店名・施設名（実在するもの。不明な場合はnull）",
-      "mapsSearchQuery": "Google Maps検索用キーワード（例：渋谷 カフェ おすすめ）"
+      "mapsSearchQuery": "Google Maps検索用キーワード（例：渋谷 カフェ おすすめ）",
+      "startTime": "活動開始時刻（HH:MM形式、例：10:00）",
+      "transport": {
+        "method": "前スポットからの移動手段（徒歩/電車/バス/自転車など）",
+        "duration": "移動時間（例：徒歩10分）"
+      }
     }
   ],
   "summary": "今日へのポジティブな一言アドバイス（40文字以内）"
-}`;
+}
+
+※10:00スタートとして各スポットに startTime を順番に設定すること。最初のスポットの transport は null にし、2番目以降は前スポットからの移動手段と時間を入れること。`;
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
     const result = await model.generateContentStream(prompt);
