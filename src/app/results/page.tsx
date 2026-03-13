@@ -153,6 +153,7 @@ function ResultsContent() {
   const budget = searchParams.get("budget");
   const mood = searchParams.get("mood");
   const date = searchParams.get("date");
+  const travelRange = searchParams.get("travelRange");
 
   // Auto-scroll streaming text box
   useEffect(() => {
@@ -167,7 +168,7 @@ function ResultsContent() {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date }),
+          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, travelRange }),
         });
 
         if (!res.ok) {
@@ -291,6 +292,11 @@ function ResultsContent() {
             {mood && (
               <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
                 {moodLabels[mood]}
+              </span>
+            )}
+            {travelRange && (
+              <span className="bg-stone-100 text-stone-600 px-3 py-1 rounded-full text-sm font-medium">
+                {travelRange === "walk" ? "🚶 徒歩圏" : travelRange === "30min" ? "🚌 30分以内" : travelRange === "1hour" ? "🚃 1時間以内" : "✈️ どこでも"}
               </span>
             )}
           </div>
