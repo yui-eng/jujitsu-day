@@ -216,7 +216,7 @@ JSONのみ返答（説明文不要）：
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
 
     // 429レート制限時は最大3回リトライ
-    let result;
+    let result: Awaited<ReturnType<typeof model.generateContentStream>> | undefined;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         result = await model.generateContentStream(prompt);
@@ -238,7 +238,7 @@ JSONのみ返答（説明文不要）：
       async start(controller) {
         controller.enqueue(encoder.encode(`__META__${meta}\n`));
         try {
-          for await (const chunk of result.stream) {
+          for await (const chunk of result!.stream) {
             controller.enqueue(encoder.encode(chunk.text()));
           }
         } finally {
