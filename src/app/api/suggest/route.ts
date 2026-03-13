@@ -43,6 +43,8 @@ export interface PlaceInfo {
   websiteUrl?: string;
   rating?: number;
   type: string;
+  lat?: number;
+  lng?: number;
 }
 
 // Fetch nearby popular places using Google Places API (New)
@@ -70,7 +72,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
           "Content-Type": "application/json",
           "X-Goog-Api-Key": apiKey,
           "X-Goog-FieldMask":
-            "places.displayName,places.formattedAddress,places.websiteUri,places.googleMapsUri,places.rating,places.primaryTypeDisplayName",
+            "places.displayName,places.formattedAddress,places.websiteUri,places.googleMapsUri,places.rating,places.primaryTypeDisplayName,places.location",
         },
         body: JSON.stringify({
           locationRestriction: {
@@ -98,6 +100,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
         websiteUri?: string;
         rating?: number;
         primaryTypeDisplayName?: { text: string };
+        location?: { latitude: number; longitude: number };
       }) => ({
         name: p.displayName?.text || "",
         address: p.formattedAddress || "",
@@ -105,6 +108,8 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
         websiteUrl: p.websiteUri,
         rating: p.rating,
         type: p.primaryTypeDisplayName?.text || "",
+        lat: p.location?.latitude,
+        lng: p.location?.longitude,
       })
     );
 

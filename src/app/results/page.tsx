@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, Suspense } from "react";
+import Image from "next/image";
 import type { PlaceInfo } from "../api/suggest/route";
 
 interface Suggestion {
@@ -143,6 +144,8 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  const [nearbyPlaces, setNearbyPlaces] = useState<PlaceInfo[]>([]);
+  const [showMap, setShowMap] = useState(false);
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
   const lat = searchParams.get("lat");
@@ -236,6 +239,7 @@ function ResultsContent() {
 
         if (weatherFromMeta) parsed.weather = weatherFromMeta;
 
+        setNearbyPlaces(placesFromMeta);
         setStreamingText("");
         setData(parsed);
       } catch (err) {
@@ -248,6 +252,33 @@ function ResultsContent() {
   }, [lat, lng, city, prefecture, time, budget, mood, date]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
+
+  // 地図用マーカーパラメータ生成（lat/lngを持つスポット最大8件）
+  const mapMarkersParam = nearbyPlaces
+    .filter((p) => p.lat && p.lng)
+    .slice(0, 8)
+    .map((p) => `${p.name},${p.lat},${p.lng}`)
+    .join("|");
+
+  const staticMapSrc =
+    lat && lng
+      ? `/api/map-static?lat=${lat}&lng=${lng}${mapMarkersParam ? `&markers=${encodeURIComponent(mapMarkersParam)}` : ""}`
+      : null;
+
+  // Google Maps でルートを開く（スポット最大5件のwaypoints）
+  const googleMapsRouteUrl = (() => {
+    const spots = nearbyPlaces.filter((p) => p.lat && p.lng).slice(0, 5);
+    if (!lat || !lng || spots.length === 0) {
+      return `https://www.google.com/maps/search/${encodeURIComponent(locationLabel)}`;
+    }
+    const origin = `${lat},${lng}`;
+    const destination = `${spots[spots.length - 1].lat},${spots[spots.length - 1].lng}`;
+    const waypoints = spots
+      .slice(0, -1)
+      .map((p) => `${p.lat},${p.lng}`)
+      .join("|");
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ""}&travelmode=transit`;
+  })();
 
   return (
     <main className="min-h-screen">
@@ -337,6 +368,95 @@ function ResultsContent() {
                 </p>
               )}
             </div>
+
+            {/* Map section */}
+            {staticMapSrc && (
+              <div className="bg-white/75 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm border border-stone-200/60 mb-5">
+                {/* Header toggle */}
+                <button
+                  onClick={() => setShowMap((v) => !v)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+                >
+                  <span className="flex items-center gap-2 font-semibold text-stone-700 text-sm">
+                    🗺️ エリアマップ
+                    {nearbyPlaces.filter((p) => p.lat && p.lng).length > 0 && (
+                      <span className="bg-stone-100 text-stone-500 text-xs px-2 py-0.5 rounded-full">
+                        {nearbyPlaces.filter((p) => p.lat && p.lng).length}件のスポット
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-stone-400 text-sm">{showMap ? "▲" : "▼"}</span>
+                </button>
+
+                {showMap && (
+                  <>
+                    {/* Static map image */}
+                    <div className="relative w-full" style={{ aspectRatio: "600/320" }}>
+                      <Image
+                        src={staticMapSrc}
+                        alt="エリアマップ"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                      {/* 凡例オーバーレイ */}
+                      <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-xs text-stone-600 shadow-sm">
+                        <span className="text-blue-500 font-bold">★</span> 現在地
+                        <span className="text-red-500 font-bold">●</span> 近くのスポット
+                      </div>
+                    </div>
+
+                    {/* スポット一覧 */}
+                    {nearbyPlaces.filter((p) => p.lat && p.lng).length > 0 && (
+                      <div className="px-4 py-3 border-t border-stone-100">
+                        <p className="text-xs text-stone-500 mb-2 font-medium tracking-wide uppercase">近くの人気スポット</p>
+                        <div className="space-y-2">
+                          {nearbyPlaces
+                            .filter((p) => p.lat && p.lng)
+                            .slice(0, 8)
+                            .map((place, i) => (
+                              <div key={i} className="flex items-start gap-2">
+                                <span className="bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 font-bold">
+                                  {i + 1}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-stone-700 truncate">{place.name}</span>
+                                    {place.rating && (
+                                      <span className="text-xs text-amber-500 flex-shrink-0">★{place.rating}</span>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-stone-400 truncate">{place.type}</p>
+                                </div>
+                                <a
+                                  href={place.mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 text-xs flex-shrink-0 hover:underline"
+                                >
+                                  地図
+                                </a>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ルートを開くボタン */}
+                    <div className="px-4 pb-4 pt-2">
+                      <a
+                        href={googleMapsRouteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-stone-800 text-white rounded-xl text-sm font-semibold hover:bg-stone-900 transition-colors"
+                      >
+                        🗺️ Google Maps でルートを確認する
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Activity cards */}
             <div className="space-y-4">
