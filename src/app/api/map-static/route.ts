@@ -5,8 +5,10 @@ export async function GET(req: NextRequest) {
   const lat = searchParams.get("lat");
   const lng = searchParams.get("lng");
   const markersParam = searchParams.get("markers"); // "name1,lat1,lng1|name2,lat2,lng2|..."
+  const suggestionsParam = searchParams.get("suggestions"); // AI suggested spots in green
+  const selectedParam = searchParams.get("selected"); // "lat,lng" - selected spot (highlighted)
 
-  const apiKey = process.env.GOOGLE_API_KEY;
+  const apiKey = process.env.GOOGLE_MAPS_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "API key missing" }, { status: 500 });
   }
@@ -45,11 +47,42 @@ export async function GET(req: NextRequest) {
     });
   }
 
+  // 選択中スポット（大きい青マーカー・最前面）
+  if (selectedParam) {
+    const parts = selectedParam.split(",");
+    if (parts.length === 2) {
+      url.searchParams.set("center", `${parts[0]},${parts[1]}`);
+      url.searchParams.set("zoom", "15");
+      url.searchParams.append(
+        "markers",
+        `color:blue|size:large|label:P|${parts[0]},${parts[1]}`
+      );
+    }
+  }
+
+  // AIおすすめスポットマーカー（緑）
+  if (suggestionsParam) {
+    const spots = suggestionsParam.split("|").slice(0, 6);
+    spots.forEach((spot) => {
+      const parts = spot.split(",");
+      if (parts.length >= 3) {
+        const spotLat = parts[parts.length - 2];
+        const spotLng = parts[parts.length - 1];
+        url.searchParams.append(
+          "markers",
+          `color:green|size:mid|label:★|${spotLat},${spotLng}`
+        );
+      }
+    });
+  }
+
   try {
     const response = await fetch(url.toString());
     if (!response.ok) {
+      const body = await response.text();
+      console.error("[map-static] Google API error:", response.status, body);
       return NextResponse.json(
-        { error: "Maps API error" },
+        { error: "Maps API error", status: response.status, detail: body },
         { status: response.status }
       );
     }

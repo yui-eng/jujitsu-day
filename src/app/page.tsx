@@ -185,7 +185,7 @@ export default function HomePage() {
             className="text-stone-500 mt-2 text-[10px] tracking-[0.3em] uppercase"
             style={{ textShadow: "0 1px 4px rgba(255,255,255,0.8)" }}
           >
-            Make your day truly yours
+            あなただけの一日を
           </p>
         </div>
 
