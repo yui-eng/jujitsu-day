@@ -153,6 +153,7 @@ function ResultsContent() {
   const budget = searchParams.get("budget");
   const mood = searchParams.get("mood");
   const date = searchParams.get("date");
+  const fatigue = searchParams.get("fatigue");
 
   // Auto-scroll streaming text box
   useEffect(() => {
@@ -167,7 +168,7 @@ function ResultsContent() {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date }),
+          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, fatigue }),
         });
 
         if (!res.ok) {
@@ -245,7 +246,7 @@ function ResultsContent() {
       }
     };
     fetchSuggestions();
-  }, [lat, lng, city, prefecture, time, budget, mood, date]);
+  }, [lat, lng, city, prefecture, time, budget, mood, date, fatigue]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 

@@ -116,7 +116,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
 
 export async function POST(req: NextRequest) {
   try {
-    const { lat, lng, city, prefecture, time, budget, mood, date } = await req.json();
+    const { lat, lng, city, prefecture, time, budget, mood, date, fatigue } = await req.json();
 
     if (!lat || !lng || !time || !budget || !mood) {
       return NextResponse.json(
@@ -174,7 +174,7 @@ export async function POST(req: NextRequest) {
 - 場所: ${locationStr}（電車1.5時間圏内のエリアも対象）${weatherStr ? `\n- 天気: ${weatherStr}` : ""}
 - 使える時間: ${timeLabels[time] || time}
 - 予算: ${budgetLabels[budget] || budget}
-- 気分: ${moodLabels[mood] || mood}
+- 気分: ${moodLabels[mood] || mood}${fatigue ? `\n- 体調・疲れ具合: ${{ energetic: "元気いっぱい（アクティブな提案OK）", normal: "普通", tired: "ちょっと疲れ（あまり体力を使わないものを優先）", exhausted: "かなり疲れ（ゆったりできるものを中心に）" }[fatigue as string] || fatigue}` : ""}
 ${placesSection}
 【提案の条件】
 1. 季節特有のイベント・旬の体験を必ず2〜3個含める（${month}月なら${getSeasonalHints(month)}）
