@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef, Suspense } from "react";
+import Image from "next/image";
 import type { PlaceInfo } from "../api/suggest/route";
 
 interface Suggestion {
@@ -19,6 +20,8 @@ interface Suggestion {
   mapsSearchQuery?: string;
   startTime?: string;
   transport?: { method: string; duration: string } | null;
+  lat?: number;
+  lng?: number;
 }
 
 interface SuggestResponse {
@@ -220,6 +223,10 @@ function ResultsContent() {
   const [streamingText, setStreamingText] = useState("");
   const [retryKey, setRetryKey] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "timeline">("card");
+  const [nearbyPlaces, setNearbyPlaces] = useState<PlaceInfo[]>([]);
+  const [showMap, setShowMap] = useState(false);
+  const [mapError, setMapError] = useState(false);
+  const [selectedSpot, setSelectedSpot] = useState<PlaceInfo | null>(null);
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
   const handleRegenerate = () => {
@@ -250,12 +257,15 @@ function ResultsContent() {
   }, [streamingText]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchSuggestions = async () => {
       try {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange, fatigue }),
+          signal: controller.signal,
         });
 
         if (!res.ok) {
@@ -314,6 +324,8 @@ function ResultsContent() {
           if (matchedPlace) {
             s.mapsUrl = matchedPlace.mapsUrl;
             if (matchedPlace.websiteUrl) s.websiteUrl = matchedPlace.websiteUrl;
+            if (matchedPlace.lat) s.lat = matchedPlace.lat;
+            if (matchedPlace.lng) s.lng = matchedPlace.lng;
           } else if (s.mapsSearchQuery) {
             const query = encodeURIComponent(`${s.mapsSearchQuery} ${locationStr}`);
             s.mapsUrl = `https://www.google.com/maps/search/${query}`;
@@ -324,18 +336,61 @@ function ResultsContent() {
 
         if (weatherFromMeta) parsed.weather = weatherFromMeta;
 
+        setNearbyPlaces(placesFromMeta);
         setStreamingText("");
         setData(parsed);
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "エラーが発生しました");
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     fetchSuggestions();
+    return () => controller.abort();
   }, [lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange, fatigue, retryKey]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
+
+  // 地図用マーカーパラメータ生成（lat/lngを持つスポット最大8件）
+  const mapMarkersParam = nearbyPlaces
+    .filter((p) => p.lat && p.lng)
+    .slice(0, 8)
+    .map((p) => `${p.name},${p.lat},${p.lng}`)
+    .join("|");
+
+  // AIが提案したスポットのマーカー（lat/lngが紐付いているもの）
+  const suggestionMarkersParam = (data?.suggestions ?? [])
+    .filter((s) => s.lat && s.lng)
+    .slice(0, 6)
+    .map((s) => `${s.title},${s.lat},${s.lng}`)
+    .join("|");
+
+  const staticMapSrc =
+    lat && lng
+      ? `/api/map-static?lat=${lat}&lng=${lng}${mapMarkersParam ? `&markers=${encodeURIComponent(mapMarkersParam)}` : ""}${suggestionMarkersParam ? `&suggestions=${encodeURIComponent(suggestionMarkersParam)}` : ""}${selectedSpot?.lat ? `&selected=${selectedSpot.lat},${selectedSpot.lng}` : ""}`
+      : null;
+
+  // 選択したスポットへのルートURL
+  const goToSpotUrl =
+    selectedSpot?.lat && selectedSpot?.lng && lat && lng
+      ? `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${selectedSpot.lat},${selectedSpot.lng}&travelmode=transit`
+      : null;
+
+  // Google Maps でルートを開く（スポット最大5件のwaypoints）
+  const googleMapsRouteUrl = (() => {
+    const spots = nearbyPlaces.filter((p) => p.lat && p.lng).slice(0, 5);
+    if (!lat || !lng || spots.length === 0) {
+      return `https://www.google.com/maps/search/${encodeURIComponent(locationLabel)}`;
+    }
+    const origin = `${lat},${lng}`;
+    const destination = `${spots[spots.length - 1].lat},${spots[spots.length - 1].lng}`;
+    const waypoints = spots
+      .slice(0, -1)
+      .map((p) => `${p.lat},${p.lng}`)
+      .join("|");
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ""}&travelmode=transit`;
+  })();
 
   return (
     <main className="min-h-screen">
@@ -357,7 +412,7 @@ function ResultsContent() {
           Joie
         </h1>
         <p className="text-stone-400 text-xs tracking-[0.3em] uppercase mb-4">
-          Today&apos;s plan
+          今日のプラン
         </p>
 
         {/* Preferences summary */}
@@ -399,7 +454,7 @@ function ResultsContent() {
           <div className="bg-stone-800 text-white rounded-2xl p-5 shadow-md text-center mb-5">
             <div className="text-3xl mb-2 animate-bounce">✨</div>
             <p className="font-semibold tracking-wide">AIがプランを考え中...</p>
-            <p className="text-xs opacity-60 mt-1 tracking-wider">generating your plan</p>
+            <p className="text-xs opacity-60 mt-1 tracking-wider">プランを生成中...</p>
           </div>
         )}
 
@@ -426,7 +481,7 @@ function ResultsContent() {
                 className="text-xs opacity-60 mb-1 tracking-widest uppercase"
                 style={{ fontFamily: "var(--font-cormorant)", fontStyle: "italic" }}
               >
-                from AI
+                AIより
               </p>
               <p className="font-medium leading-relaxed">{data.summary}</p>
               {data.weather && (
@@ -436,18 +491,115 @@ function ResultsContent() {
               )}
             </div>
 
+            {/* 近くのスポット候補（選択式） */}
+            {nearbyPlaces.length > 0 && (
+              <div className="mb-5">
+                <p className="text-xs text-stone-500 font-medium mb-2 px-1">📍 近くのスポット候補</p>
+                <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1" style={{ scrollbarWidth: "none" }}>
+                  {nearbyPlaces
+                    .slice(0, 8)
+                    .map((place, i) => {
+                      const isSelected = selectedSpot?.name === place.name;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            if (!place.lat || !place.lng) return;
+                            setSelectedSpot(isSelected ? null : place);
+                            setMapError(false);
+                          }}
+                          className={`flex-shrink-0 flex flex-col items-start gap-0.5 px-3 py-2.5 rounded-2xl border transition-all text-left min-w-[120px] max-w-[150px] ${
+                            isSelected
+                              ? "bg-stone-800 text-white border-stone-800 shadow-md"
+                              : place.lat && place.lng
+                              ? "bg-white/80 text-stone-700 border-stone-200 hover:border-stone-400 cursor-pointer"
+                              : "bg-white/60 text-stone-500 border-stone-100 cursor-default"
+                          }`}
+                        >
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mb-0.5 ${isSelected ? "bg-white/20 text-white" : "bg-stone-100 text-stone-500"}`}>
+                            {i + 1}
+                          </span>
+                          <span className="text-sm font-semibold leading-snug line-clamp-2">{place.name}</span>
+                          <span className={`text-[11px] truncate w-full ${isSelected ? "text-stone-300" : "text-stone-400"}`}>{place.type}</span>
+                          {place.rating && (
+                            <span className={`text-[11px] ${isSelected ? "text-amber-300" : "text-amber-500"}`}>★ {place.rating}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                </div>
+                {goToSpotUrl && (
+                  <a
+                    href={goToSpotUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 flex items-center justify-center gap-2 w-full py-3 bg-stone-800 text-white rounded-2xl text-sm font-semibold hover:bg-stone-900 transition-colors shadow-md"
+                  >
+                    📍 {selectedSpot?.name} へ行く
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Map section */}
+            {staticMapSrc && (
+              <div className="bg-white/75 backdrop-blur-sm rounded-2xl overflow-hidden shadow-sm border border-stone-200/60 mb-5">
+                <button
+                  onClick={() => setShowMap((v) => !v)}
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left"
+                >
+                  <span className="flex items-center gap-2 font-semibold text-stone-700 text-sm">
+                    🗺️ エリアマップ
+                    {nearbyPlaces.filter((p) => p.lat && p.lng).length > 0 && (
+                      <span className="bg-stone-100 text-stone-500 text-xs px-2 py-0.5 rounded-full">
+                        {nearbyPlaces.filter((p) => p.lat && p.lng).length}件のスポット
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-stone-400 text-sm">{showMap ? "▲" : "▼"}</span>
+                </button>
+                {showMap && (
+                  <>
+                    <div className="relative w-full" style={{ aspectRatio: "600/320" }}>
+                      {mapError ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-stone-50 gap-3 px-6 text-center">
+                          <span className="text-3xl">🗺️</span>
+                          <p className="text-sm font-medium text-stone-600">地図を表示できませんでした</p>
+                          <p className="text-xs text-stone-400 leading-relaxed">
+                            Google Cloud Console で<br/>
+                            <span className="font-semibold text-stone-500">Maps Static API</span> を有効にしてください
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <Image src={staticMapSrc!} alt="エリアマップ" fill className="object-cover" unoptimized onError={() => setMapError(true)} />
+                          <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 text-xs text-stone-600 shadow-sm space-y-0.5">
+                            <div><span className="text-blue-500 font-bold">★</span> 現在地</div>
+                            <div><span className="text-red-500 font-bold">●</span> 近くのスポット</div>
+                            {suggestionMarkersParam && <div><span className="text-green-600 font-bold">●</span> AIおすすめ</div>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <div className="px-4 pb-4 pt-2">
+                      <a href={goToSpotUrl ?? googleMapsRouteUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-stone-800 text-white rounded-xl text-sm font-semibold hover:bg-stone-900 transition-colors">
+                        {goToSpotUrl ? `📍 ${selectedSpot?.name} へ行く` : "🗺️ Google Maps でルートを確認する"}
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* View toggle */}
             <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setViewMode("card")}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "card" ? "bg-stone-800 text-white" : "bg-white/70 text-stone-600 border border-stone-200"}`}
-              >
+              <button onClick={() => setViewMode("card")}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "card" ? "bg-stone-800 text-white" : "bg-white/70 text-stone-600 border border-stone-200"}`}>
                 🃏 カード表示
               </button>
-              <button
-                onClick={() => setViewMode("timeline")}
-                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "timeline" ? "bg-stone-800 text-white" : "bg-white/70 text-stone-600 border border-stone-200"}`}
-              >
+              <button onClick={() => setViewMode("timeline")}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "timeline" ? "bg-stone-800 text-white" : "bg-white/70 text-stone-600 border border-stone-200"}`}>
                 🕙 タイムライン
               </button>
             </div>

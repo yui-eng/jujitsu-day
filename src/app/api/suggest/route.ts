@@ -57,70 +57,89 @@ export interface PlaceInfo {
   websiteUrl?: string;
   rating?: number;
   type: string;
+  lat?: number;
+  lng?: number;
 }
 
-// Fetch nearby popular places using Google Places API (New)
-async function fetchNearbyPlaces(lat: string, lng: string, mood: string, radius: number = 50000): Promise<PlaceInfo[]> {
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) return [];
+// Fetch nearby places using OpenStreetMap Overpass API (無料・APIキー不要)
+async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promise<PlaceInfo[]> {
+  const radius = 8000; // 8km
 
-  const typesByMood: Record<string, string[]> = {
-    active: ["sports_complex", "park", "gym", "swimming_pool", "hiking_area"],
-    relaxed: ["spa", "cafe", "park", "library", "art_gallery"],
-    social: ["restaurant", "bar", "amusement_park", "bowling_alley", "karaoke"],
-    creative: ["art_gallery", "museum", "art_studio", "craft_store", "library"],
-    nature: ["park", "national_park", "botanical_garden", "beach", "hiking_area"],
-    foodie: ["restaurant", "cafe", "bakery", "food_court", "market"],
+  const tagsByMood: Record<string, { key: string; values: string[] }[]> = {
+    active: [
+      { key: "leisure", values: ["sports_centre", "swimming_pool", "fitness_centre", "stadium"] },
+      { key: "amenity", values: ["gym"] },
+    ],
+    relaxed: [
+      { key: "amenity", values: ["spa", "cafe", "library"] },
+      { key: "leisure", values: ["park", "garden"] },
+    ],
+    social: [
+      { key: "amenity", values: ["restaurant", "bar", "cinema", "theatre", "bowling_alley"] },
+    ],
+    creative: [
+      { key: "amenity", values: ["arts_centre", "library", "theatre"] },
+      { key: "tourism", values: ["museum", "gallery"] },
+    ],
+    nature: [
+      { key: "leisure", values: ["park", "garden", "nature_reserve"] },
+      { key: "tourism", values: ["viewpoint"] },
+    ],
+    foodie: [
+      { key: "amenity", values: ["restaurant", "cafe", "fast_food", "bakery"] },
+    ],
   };
 
-  const types = typesByMood[mood] || ["tourist_attraction", "restaurant", "park"];
+  const tagGroups = tagsByMood[mood] || [{ key: "amenity", values: ["restaurant", "cafe"] }];
+
+  const typeLabels: Record<string, string> = {
+    restaurant: "レストラン", cafe: "カフェ", bar: "バー", fast_food: "ファストフード",
+    bakery: "ベーカリー", cinema: "映画館", theatre: "劇場", library: "図書館",
+    arts_centre: "アートセンター", gym: "ジム", spa: "スパ", bowling_alley: "ボウリング場",
+    sports_centre: "スポーツ施設", swimming_pool: "プール", fitness_centre: "フィットネス",
+    stadium: "スタジアム", park: "公園", garden: "庭園", nature_reserve: "自然保護区",
+    museum: "博物館", gallery: "ギャラリー", viewpoint: "展望台",
+  };
+
+  const unions = tagGroups
+    .flatMap(({ key, values }) =>
+      values.map((v) => `node["${key}"="${v}"](around:${radius},${lat},${lng});`)
+    )
+    .join("\n");
+
+  const query = `[out:json][timeout:10];\n(\n${unions}\n);\nout 5;`;
 
   try {
-    const response = await fetch(
-      "https://places.googleapis.com/v1/places:searchNearby",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": apiKey,
-          "X-Goog-FieldMask":
-            "places.displayName,places.formattedAddress,places.websiteUri,places.googleMapsUri,places.rating,places.primaryTypeDisplayName",
-        },
-        body: JSON.stringify({
-          locationRestriction: {
-            circle: {
-              center: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
-              radius: radius,
-            },
-          },
-          includedTypes: types,
-          maxResultCount: 10,
-          rankPreference: "POPULARITY",
-          languageCode: "ja",
-        }),
-      }
-    );
+    const response = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `data=${encodeURIComponent(query)}`,
+    });
 
     if (!response.ok) return [];
 
     const data = await response.json();
-    const places: PlaceInfo[] = (data.places || []).map(
-      (p: {
-        displayName?: { text: string };
-        formattedAddress?: string;
-        googleMapsUri?: string;
-        websiteUri?: string;
-        rating?: number;
-        primaryTypeDisplayName?: { text: string };
-      }) => ({
-        name: p.displayName?.text || "",
-        address: p.formattedAddress || "",
-        mapsUrl: p.googleMapsUri || "",
-        websiteUrl: p.websiteUri,
-        rating: p.rating,
-        type: p.primaryTypeDisplayName?.text || "",
-      })
-    );
+    const elements = (data.elements || []) as {
+      tags?: Record<string, string>;
+      lat?: number;
+      lon?: number;
+    }[];
+
+    const places: PlaceInfo[] = elements
+      .filter((el) => el.tags?.name && el.lat && el.lon)
+      .slice(0, 5)
+      .map((el) => {
+        const typeKey =
+          el.tags?.amenity || el.tags?.leisure || el.tags?.tourism || "";
+        return {
+          name: el.tags!.name!,
+          address: el.tags?.["addr:full"] || el.tags?.["addr:street"] || "",
+          mapsUrl: `https://www.google.com/maps/search/${encodeURIComponent(el.tags!.name!)}/@${el.lat},${el.lon},17z`,
+          type: typeLabels[typeKey] || typeKey,
+          lat: el.lat,
+          lng: el.lon,
+        };
+      });
 
     return places;
   } catch {
@@ -139,19 +158,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const radiusByRange: Record<string, number> = {
-      walk: 2000,
-      "30min": 15000,
-      "1hour": 40000,
-      anywhere: 80000,
-    };
-    const searchRadius = travelRange ? (radiusByRange[travelRange] ?? 50000) : 50000;
-
     const [weatherResult, nearbyPlaces] = await Promise.allSettled([
       fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=Asia%2FTokyo`
       ).then((r) => r.json()),
-      fetchNearbyPlaces(lat, lng, mood, searchRadius),
+      fetchNearbyPlaces(lat, lng, mood),
     ]);
 
     let weatherStr = "不明";
@@ -181,20 +192,16 @@ export async function POST(req: NextRequest) {
 
     const placesSection =
       places.length > 0
-        ? `\n【電車1.5時間圏内（約50km）の実際の人気スポット】\n${places
-            .map(
-              (p, i) =>
-                `${i + 1}. ${p.name}（${p.type}）- ${p.address}${p.rating ? ` ★${p.rating}` : ""}`
-            )
-            .join("\n")}\n※上記のスポットを積極的に提案に含めてください。`
+        ? `\n【近くのスポット】\n${places.map((p, i) => `${i + 1}. ${p.name}（${p.type}）`).join("\n")}\n※上記スポットを積極的に提案に含めてください。`
         : "";
 
-    const prompt = `あなたは日本在住者の暇な1日を充実させるアクティビティ提案の専門家です。
+    const prompt = `日本在住者の暇な1日を充実させるアクティビティを5〜6個提案してください。
 
-【今日の状況】
-- 日付: ${month}月${day}日（${dayOfWeek}曜日）/ ${seasons[month]}
-- 場所: ${locationStr}（電車1.5時間圏内のエリアも対象）${weatherStr ? `\n- 天気: ${weatherStr}` : ""}
-- 使える時間: ${timeLabels[time] || time}
+【状況】
+- 日付: ${month}月${day}日（${dayOfWeek}）/ ${seasons[month]}
+- 場所: ${locationStr}（電車1時間圏内も対象）
+- 天気: ${weatherStr}
+- 時間: ${timeLabels[time] || time}
 - 予算: ${budgetLabels[budget] || budget}
 - 気分: ${moodLabels[mood] || mood}${fatigue ? `\n- 体調・疲れ具合: ${{ energetic: "元気いっぱい（アクティブな提案OK）", normal: "普通", tired: "ちょっと疲れ（あまり体力を使わないものを優先）", exhausted: "かなり疲れ（ゆったりできるものを中心に）" }[fatigue as string] || fatigue}` : ""}
 ${companion ? `- 同行者: ${companionLabels[companion] || companion}` : ""}
@@ -209,7 +216,7 @@ ${placesSection}
 6. 移動範囲の制約: ${travelRange === "walk" ? "徒歩2km以内のみ" : travelRange === "30min" ? "電車・バス30分以内（約15km）" : travelRange === "1hour" ? "電車・バス1時間以内（約40km）" : "距離制限なし（遠出OK）"}
 7. 合計6〜8個の多様な提案をする
 
-以下のJSON形式のみで回答してください（前後に説明文不要）：
+JSONのみ返答（説明文不要）：
 
 {
   "suggestions": [
@@ -236,8 +243,22 @@ ${placesSection}
 
 ※10:00スタートとして各スポットに startTime を順番に設定すること。最初のスポットの transport は null にし、2番目以降は前スポットからの移動手段と時間を入れること。`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
-    const result = await model.generateContentStream(prompt);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+
+    // 429レート制限時は最大3回リトライ
+    let result: Awaited<ReturnType<typeof model.generateContentStream>> | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        result = await model.generateContentStream(prompt);
+        break;
+      } catch (e) {
+        if (attempt < 2 && e instanceof Error && e.message.includes("429")) {
+          await new Promise((r) => setTimeout(r, 4000 * (attempt + 1)));
+          continue;
+        }
+        throw e;
+      }
+    }
 
     // Stream response: first line is metadata, then AI text chunks
     const encoder = new TextEncoder();
@@ -247,7 +268,7 @@ ${placesSection}
       async start(controller) {
         controller.enqueue(encoder.encode(`__META__${meta}\n`));
         try {
-          for await (const chunk of result.stream) {
+          for await (const chunk of result!.stream) {
             controller.enqueue(encoder.encode(chunk.text()));
           }
         } finally {
@@ -266,7 +287,11 @@ ${placesSection}
       if (error.message.includes("503")) {
         message = "AIサーバーが混雑しています。少し待ってから再試行してください。";
       } else if (error.message.includes("429")) {
-        message = "AIの利用上限に達しました。しばらく時間をおいてから再試行してください。";
+        if (error.message.toLowerCase().includes("daily") || error.message.toLowerCase().includes("quota")) {
+          message = "本日のAI利用上限に達しました。明日また試してください。";
+        } else {
+          message = "AIの一時的な制限に達しました。1分ほど待ってから再試行してください。";
+        }
       } else if (error.message.includes("404")) {
         message = "AIモデルに接続できませんでした。管理者にお問い合わせください。";
       }
