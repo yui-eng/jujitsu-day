@@ -155,6 +155,7 @@ function ResultsContent() {
   const date = searchParams.get("date");
   const companion = searchParams.get("companion");
   const travelRange = searchParams.get("travelRange");
+  const fatigue = searchParams.get("fatigue");
 
   // Auto-scroll streaming text box
   useEffect(() => {
@@ -169,7 +170,7 @@ function ResultsContent() {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange }),
+          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange, fatigue }),
         });
 
         if (!res.ok) {
@@ -247,7 +248,7 @@ function ResultsContent() {
       }
     };
     fetchSuggestions();
-  }, [lat, lng, city, prefecture, time, budget, mood, date]);
+  }, [lat, lng, city, prefecture, time, budget, mood, date, fatigue]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 type TimeOption = "2h" | "halfday" | "allday";
 type BudgetOption = "free" | "low" | "medium" | "high";
+type FatigueOption = "energetic" | "normal" | "tired" | "exhausted";
 type MoodOption =
   | "active"
   | "relaxed"
@@ -34,6 +35,13 @@ const budgetOptions: { value: BudgetOption; label: string; desc: string }[] = [
   { value: "low", label: "〜¥1,000", desc: "ちょっと出費" },
   { value: "medium", label: "〜¥5,000", desc: "まあまあ使う" },
   { value: "high", label: "¥5,000〜", desc: "せっかくだから" },
+];
+
+const fatigueOptions: { value: FatigueOption; label: string; emoji: string; desc: string }[] = [
+  { value: "energetic", label: "元気いっぱい", emoji: "💪", desc: "なんでもできる！" },
+  { value: "normal", label: "普通", emoji: "😊", desc: "まあまあ元気" },
+  { value: "tired", label: "ちょっと疲れ", emoji: "😮‍💨", desc: "あまり無理したくない" },
+  { value: "exhausted", label: "かなり疲れ", emoji: "😴", desc: "ゆっくりしたい" },
 ];
 
 const moodOptions: {
@@ -74,6 +82,7 @@ export default function HomePage() {
   const [selectedTime, setSelectedTime] = useState<TimeOption | null>(null);
   const [selectedBudget, setSelectedBudget] = useState<BudgetOption | null>(null);
   const [selectedMood, setSelectedMood] = useState<MoodOption | null>(null);
+  const [selectedFatigue, setSelectedFatigue] = useState<FatigueOption | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
@@ -173,6 +182,7 @@ export default function HomePage() {
       date: selectedDate,
       ...(selectedCompanion && { companion: selectedCompanion }),
       ...(selectedTravelRange && { travelRange: selectedTravelRange }),
+      ...(selectedFatigue && { fatigue: selectedFatigue }),
     });
 
     router.push(`/results?${params.toString()}`);
@@ -420,6 +430,32 @@ export default function HomePage() {
                 onClick={() => setSelectedMood(opt.value)}
                 className={`py-3 px-4 rounded-xl border transition-all text-left ${
                   selectedMood === opt.value
+                    ? "border-stone-600 bg-stone-50 text-stone-800"
+                    : "border-stone-200 text-stone-500 hover:border-stone-400 hover:bg-stone-50/50 bg-white/50"
+                }`}
+              >
+                <div className="text-2xl">{opt.emoji}</div>
+                <div className="font-semibold text-sm mt-1">{opt.label}</div>
+                <div className="text-xs text-stone-400">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Step 6: Fatigue */}
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-300 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">6</span>
+            今日の体調
+            <span className="text-xs text-stone-400 font-normal normal-case tracking-normal">任意</span>
+          </h2>
+          <div className="grid grid-cols-2 gap-2">
+            {fatigueOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelectedFatigue(selectedFatigue === opt.value ? null : opt.value)}
+                className={`py-3 px-4 rounded-xl border transition-all text-left ${
+                  selectedFatigue === opt.value
                     ? "border-stone-600 bg-stone-50 text-stone-800"
                     : "border-stone-200 text-stone-500 hover:border-stone-400 hover:bg-stone-50/50 bg-white/50"
                 }`}
