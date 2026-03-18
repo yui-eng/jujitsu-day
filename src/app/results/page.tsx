@@ -17,6 +17,8 @@ interface Suggestion {
   mapsUrl?: string;
   websiteUrl?: string;
   mapsSearchQuery?: string;
+  startTime?: string;
+  transport?: { method: string; duration: string } | null;
 }
 
 interface SuggestResponse {
@@ -102,6 +104,79 @@ function FadeInCard({
   );
 }
 
+function TimelineView({ suggestions, categoryConfig }: { suggestions: Suggestion[]; categoryConfig: Record<string, { color: string; icon: string }> }) {
+  return (
+    <div className="relative">
+      <div className="absolute left-[52px] top-0 bottom-0 w-px bg-stone-200" />
+      <div className="space-y-0">
+        {suggestions.map((s, i) => {
+          const catConfig = categoryConfig[s.category] || { color: "bg-stone-100 text-stone-600", icon: "📌" };
+          return (
+            <div key={i}>
+              {s.transport && (
+                <div className="flex items-center gap-2 pl-[68px] py-1.5">
+                  <span className="text-stone-400 text-xs">▼ {s.transport.method}・{s.transport.duration}</span>
+                </div>
+              )}
+              <div className="flex gap-3 items-start">
+                <div className="flex flex-col items-center w-[52px] flex-shrink-0 pt-1">
+                  <span className="text-xs font-bold text-stone-600 tabular-nums leading-none">{s.startTime || ""}</span>
+                  <div className="mt-1.5 w-3 h-3 rounded-full bg-stone-700 border-2 border-white z-10" />
+                </div>
+                <div className="flex-1 bg-white/75 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-stone-200/60 mb-3">
+                  <div className="flex items-start gap-2 mb-1.5">
+                    <span className="text-xl flex-shrink-0">{catConfig.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-bold text-gray-800 text-sm leading-snug">{s.title}</h3>
+                        {s.isSeasonalEvent && (
+                          <span className="flex-shrink-0 bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">旬</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-600 text-xs leading-relaxed mb-2 ml-7">{s.description}</p>
+                  {s.seasonalNote && (
+                    <div className="ml-7 bg-orange-50 border border-orange-100 px-2.5 py-1.5 rounded-lg mb-2">
+                      <p className="text-orange-700 text-xs leading-relaxed">🌸 {s.seasonalNote}</p>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-1.5 ml-7">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${catConfig.color}`}>{s.category}</span>
+                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">⏱️ {s.estimatedTime}</span>
+                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">💰 {s.estimatedCost}</span>
+                  </div>
+                  {s.tips && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 ml-7">
+                      <p className="text-xs text-gray-500 leading-relaxed">💡 {s.tips}</p>
+                    </div>
+                  )}
+                  {(s.mapsUrl || s.websiteUrl) && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 ml-7 flex gap-2 flex-wrap">
+                      {s.mapsUrl && (
+                        <a href={s.mapsUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors font-medium">
+                          🗺️ Google Mapsで見る
+                        </a>
+                      )}
+                      {s.websiteUrl && (
+                        <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-2.5 py-1 rounded-full hover:bg-green-100 transition-colors font-medium">
+                          🌐 公式サイト
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const categoryConfig: Record<string, { color: string; icon: string }> = {
   アウトドア: { color: "bg-green-100 text-green-700", icon: "🌲" },
   "文化・芸術": { color: "bg-purple-100 text-purple-700", icon: "🎭" },
@@ -144,6 +219,7 @@ function ResultsContent() {
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
   const [retryKey, setRetryKey] = useState(0);
+  const [viewMode, setViewMode] = useState<"card" | "timeline">("card");
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
   const handleRegenerate = () => {
@@ -360,15 +436,35 @@ function ResultsContent() {
               )}
             </div>
 
-            {/* Activity cards */}
-            <div className="space-y-4">
-              {data.suggestions.map((suggestion, index) => {
-                const catConfig = categoryConfig[suggestion.category] || { color: "bg-stone-100 text-stone-600", icon: "📌" };
-                return (
-                  <FadeInCard key={index} index={index} suggestion={suggestion} catConfig={catConfig} />
-                );
-              })}
+            {/* View toggle */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setViewMode("card")}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "card" ? "bg-stone-800 text-white" : "bg-white/70 text-stone-600 border border-stone-200"}`}
+              >
+                🃏 カード表示
+              </button>
+              <button
+                onClick={() => setViewMode("timeline")}
+                className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "timeline" ? "bg-stone-800 text-white" : "bg-white/70 text-stone-600 border border-stone-200"}`}
+              >
+                🕙 タイムライン
+              </button>
             </div>
+
+            {/* Activity cards */}
+            {viewMode === "card" ? (
+              <div className="space-y-4">
+                {data.suggestions.map((suggestion, index) => {
+                  const catConfig = categoryConfig[suggestion.category] || { color: "bg-stone-100 text-stone-600", icon: "📌" };
+                  return (
+                    <FadeInCard key={index} index={index} suggestion={suggestion} catConfig={catConfig} />
+                  );
+                })}
+              </div>
+            ) : (
+              <TimelineView suggestions={data.suggestions} categoryConfig={categoryConfig} />
+            )}
 
             {/* Retry */}
             <div className="mt-8 flex gap-3 justify-center">
