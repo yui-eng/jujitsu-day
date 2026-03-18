@@ -188,6 +188,45 @@ export default function HomePage() {
     router.push(`/results?${params.toString()}`);
   };
 
+  const [quickLoading, setQuickLoading] = useState(false);
+
+  const handleQuickRecommend = () => {
+    setQuickLoading(true);
+    const hour = new Date().getHours();
+    const autoTime: TimeOption = hour >= 10 && hour < 14 ? "2h" : hour >= 14 && hour < 19 ? "halfday" : hour >= 19 ? "2h" : "halfday";
+    const autoMood: MoodOption = hour >= 6 && hour < 10 ? "active" : hour >= 10 && hour < 14 ? "foodie" : hour >= 14 && hour < 18 ? "relaxed" : "social";
+    const today = new Date().toISOString().split("T")[0];
+
+    if (!navigator.geolocation) {
+      const params = new URLSearchParams({ lat: "35.6762", lng: "139.6503", city: "東京", prefecture: "東京都", time: autoTime, budget: "low", mood: autoMood, date: today });
+      router.push(`/results?${params.toString()}`);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=ja`, { headers: { "User-Agent": "JujitsuDayApp/1.0" } });
+          const data = await res.json();
+          const address = data.address || {};
+          const city = address.city || address.town || address.village || address.county || address.suburb || "";
+          const prefecture = address.state || address.province || "";
+          const params = new URLSearchParams({ lat: latitude.toString(), lng: longitude.toString(), city, prefecture, time: autoTime, budget: "low", mood: autoMood, date: today });
+          router.push(`/results?${params.toString()}`);
+        } catch {
+          const params = new URLSearchParams({ lat: latitude.toString(), lng: longitude.toString(), city: "", prefecture: "", time: autoTime, budget: "low", mood: autoMood, date: today });
+          router.push(`/results?${params.toString()}`);
+        }
+      },
+      () => {
+        const params = new URLSearchParams({ lat: "35.6762", lng: "139.6503", city: "東京", prefecture: "東京都", time: autoTime, budget: "low", mood: autoMood, date: today });
+        router.push(`/results?${params.toString()}`);
+        setQuickLoading(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
   const isFormComplete =
     location && selectedTime && selectedBudget && selectedMood;
 
@@ -219,6 +258,19 @@ export default function HomePage() {
             あなただけの一日を
           </p>
         </div>
+
+        {/* Quick Recommend */}
+        <button
+          onClick={handleQuickRecommend}
+          disabled={quickLoading}
+          className="w-full mb-6 py-4 rounded-2xl font-semibold text-sm tracking-widest bg-stone-800 text-white hover:bg-stone-900 active:scale-[0.98] transition-all shadow-md disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {quickLoading ? (
+            <><span className="animate-spin">⏳</span> 現在地を取得中...</>
+          ) : (
+            <>✨ ワンタップで今日のおすすめを見る</>
+          )}
+        </button>
 
         {/* Step 1: Location */}
         <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
