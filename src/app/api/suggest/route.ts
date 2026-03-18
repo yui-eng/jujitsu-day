@@ -43,6 +43,13 @@ const companionLabels: Record<string, string> = {
   family: "家族と（子連れOK・幅広い年齢層）",
 };
 
+const travelRangeLabels: Record<string, string> = {
+  walk: "徒歩圏内（2km以内）",
+  "30min": "電車・バスで30分以内",
+  "1hour": "電車・バスで1時間以内",
+  anywhere: "距離制限なし（遠出OK）",
+};
+
 export interface PlaceInfo {
   name: string;
   address: string;
@@ -53,7 +60,7 @@ export interface PlaceInfo {
 }
 
 // Fetch nearby popular places using Google Places API (New)
-async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promise<PlaceInfo[]> {
+async function fetchNearbyPlaces(lat: string, lng: string, mood: string, radius: number = 50000): Promise<PlaceInfo[]> {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) return [];
 
@@ -83,7 +90,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
           locationRestriction: {
             circle: {
               center: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
-              radius: 50000.0,
+              radius: radius,
             },
           },
           includedTypes: types,
@@ -123,7 +130,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
 
 export async function POST(req: NextRequest) {
   try {
-    const { lat, lng, city, prefecture, time, budget, mood, date, companion } = await req.json();
+    const { lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange } = await req.json();
 
     if (!lat || !lng || !time || !budget || !mood) {
       return NextResponse.json(
@@ -132,11 +139,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const radiusByRange: Record<string, number> = {
+      walk: 2000,
+      "30min": 15000,
+      "1hour": 40000,
+      anywhere: 80000,
+    };
+    const searchRadius = travelRange ? (radiusByRange[travelRange] ?? 50000) : 50000;
+
     const [weatherResult, nearbyPlaces] = await Promise.allSettled([
       fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=Asia%2FTokyo`
       ).then((r) => r.json()),
-      fetchNearbyPlaces(lat, lng, mood),
+      fetchNearbyPlaces(lat, lng, mood, searchRadius),
     ]);
 
     let weatherStr = "不明";
@@ -183,6 +198,7 @@ export async function POST(req: NextRequest) {
 - 予算: ${budgetLabels[budget] || budget}
 - 気分: ${moodLabels[mood] || mood}
 ${companion ? `- 同行者: ${companionLabels[companion] || companion}` : ""}
+${travelRange ? `- 移動範囲: ${travelRangeLabels[travelRange] || travelRange}` : ""}
 ${placesSection}
 【提案の条件】
 1. 季節特有のイベント・旬の体験を必ず2〜3個含める（${month}月なら${getSeasonalHints(month)}）
@@ -190,7 +206,7 @@ ${placesSection}
 3. 天気・気温に合ったアクティビティのみ提案する
 4. 指定予算内で楽しめるものにする
 5. 指定時間内に完結できるものにする
-6. 電車1.5時間圏内（約50km）で行けるものを対象にする
+6. 移動範囲の制約: ${travelRange === "walk" ? "徒歩2km以内のみ" : travelRange === "30min" ? "電車・バス30分以内（約15km）" : travelRange === "1hour" ? "電車・バス1時間以内（約40km）" : "距離制限なし（遠出OK）"}
 7. 合計6〜8個の多様な提案をする
 
 以下のJSON形式のみで回答してください（前後に説明文不要）：

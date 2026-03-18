@@ -14,6 +14,7 @@ type MoodOption =
   | "foodie";
 
 type CompanionOption = "solo" | "friends" | "couple" | "family";
+type TravelRangeOption = "walk" | "30min" | "1hour" | "anywhere";
 
 interface LocationInfo {
   lat: number;
@@ -56,6 +57,13 @@ const companionOptions: { value: CompanionOption; label: string; emoji: string; 
   { value: "family", label: "家族と", emoji: "👨‍👩‍👦", desc: "みんな一緒に" },
 ];
 
+const travelRangeOptions: { value: TravelRangeOption; label: string; emoji: string; desc: string }[] = [
+  { value: "walk", label: "徒歩圏", emoji: "🚶", desc: "近所を散策" },
+  { value: "30min", label: "30分以内", emoji: "🚌", desc: "電車・バスで" },
+  { value: "1hour", label: "1時間以内", emoji: "🚃", desc: "少し足を伸ばして" },
+  { value: "anywhere", label: "どこでも", emoji: "✈️", desc: "遠出もOK" },
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [location, setLocation] = useState<LocationInfo | null>(null);
@@ -70,6 +78,7 @@ export default function HomePage() {
     new Date().toISOString().split("T")[0]
   );
   const [selectedCompanion, setSelectedCompanion] = useState<CompanionOption | null>(null);
+  const [selectedTravelRange, setSelectedTravelRange] = useState<TravelRangeOption | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getLocation = () => {
@@ -163,6 +172,7 @@ export default function HomePage() {
       mood: selectedMood,
       date: selectedDate,
       ...(selectedCompanion && { companion: selectedCompanion }),
+      ...(selectedTravelRange && { travelRange: selectedTravelRange }),
     });
 
     router.push(`/results?${params.toString()}`);
@@ -342,6 +352,32 @@ export default function HomePage() {
                 <div className="text-xl mb-1">{opt.icon}</div>
                 <div className="font-semibold text-sm">{opt.label}</div>
                 <div className="text-xs text-stone-400 mt-0.5">{opt.desc}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Step 4: Travel Range */}
+        <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
+          <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+            <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">4</span>
+            移動できる範囲
+            <span className="ml-auto text-[10px] text-stone-400 normal-case font-normal tracking-normal">任意</span>
+          </h2>
+          <div className="grid grid-cols-4 gap-2">
+            {travelRangeOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setSelectedTravelRange(selectedTravelRange === opt.value ? null : opt.value)}
+                className={`py-3 px-1 rounded-xl border transition-all text-center ${
+                  selectedTravelRange === opt.value
+                    ? "border-stone-600 bg-stone-50 text-stone-800"
+                    : "border-stone-200 text-stone-500 hover:border-stone-400 hover:bg-stone-50/50 bg-white/50"
+                }`}
+              >
+                <div className="text-xl mb-1">{opt.emoji}</div>
+                <div className="font-semibold text-[11px] leading-tight">{opt.label}</div>
+                <div className="text-[10px] text-stone-400 mt-0.5">{opt.desc}</div>
               </button>
             ))}
           </div>
