@@ -243,7 +243,7 @@ JSONのみ返答（説明文不要）：
 
 ※10:00スタートとして各スポットに startTime を順番に設定すること。最初のスポットの transport は null にし、2番目以降は前スポットからの移動手段と時間を入れること。`;
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
     // 429レート制限時は最大3回リトライ
     let result: Awaited<ReturnType<typeof model.generateContentStream>> | undefined;
