@@ -303,6 +303,9 @@ export default function HomePage() {
         {/* Step label */}
         <p className="text-center text-xs text-stone-400 tracking-[0.2em] uppercase mb-4">
           {currentStep + 1} / {TOTAL_STEPS} — {stepTitles[currentStep]}
+          {currentStep > 0 && (
+            <span className="ml-2 text-stone-300 normal-case tracking-normal">（ドットで戻れます）</span>
+          )}
         </p>
 
         {/* Step content */}
@@ -488,8 +491,11 @@ export default function HomePage() {
         {/* Navigation buttons */}
         <div className="mt-6 flex gap-3">
           {currentStep > 0 && (
-            <button onClick={goBack} className="px-5 py-3 border border-stone-300 text-stone-600 rounded-2xl font-semibold text-sm hover:bg-white/60 transition-colors">
-              ← 戻る
+            <button
+              onClick={goBack}
+              className="flex items-center gap-2 px-5 py-3 bg-white/80 border-2 border-stone-300 text-stone-700 rounded-2xl font-bold text-sm hover:border-stone-500 hover:bg-white active:scale-[0.97] transition-all shadow-sm"
+            >
+              <span className="text-base">‹</span> 戻る
             </button>
           )}
           {currentStep < TOTAL_STEPS - 1 ? (
