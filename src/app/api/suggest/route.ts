@@ -151,7 +151,7 @@ async function fetchNearbyPlaces(lat: string, lng: string, mood: string): Promis
 
 export async function POST(req: NextRequest) {
   try {
-    const { lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange, fatigue } = await req.json();
+    const { lat, lng, city, prefecture, time, budget, mood, date, startTime, companion, travelRange, fatigue } = await req.json();
 
     if (!lat || !lng || !time || !budget || !mood) {
       return NextResponse.json(
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
     const prompt = `日本在住者の暇な1日を充実させるアクティビティを5〜6個提案してください。
 
 【状況】
-- 日付: ${month}月${day}日（${dayOfWeek}）/ ${seasons[month]}
+- 日付: ${month}月${day}日（${dayOfWeek}）/ ${seasons[month]}${startTime ? ` / 出発時刻: ${startTime}` : ""}
 - 場所: ${locationStr}（電車1時間圏内も対象）
 - 天気: ${weatherStr}
 - 時間: ${timeLabels[time] || time}
