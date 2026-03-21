@@ -399,6 +399,7 @@ function ResultsContent() {
   const companion = searchParams.get("companion");
   const travelRange = searchParams.get("travelRange");
   const fatigue = searchParams.get("fatigue");
+  const startTime = searchParams.get("startTime");
 
   // Auto-scroll streaming text box
   useEffect(() => {
@@ -415,7 +416,7 @@ function ResultsContent() {
         const res = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange, fatigue }),
+          body: JSON.stringify({ lat, lng, city, prefecture, time, budget, mood, date, startTime, companion, travelRange, fatigue }),
           signal: controller.signal,
         });
 

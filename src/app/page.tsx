@@ -86,6 +86,10 @@ export default function HomePage() {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
+  const [selectedStartTime, setSelectedStartTime] = useState<string>(() => {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  });
   const [selectedCompanion, setSelectedCompanion] = useState<CompanionOption | null>(null);
   const [selectedTravelRange, setSelectedTravelRange] = useState<TravelRangeOption | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -180,6 +184,7 @@ export default function HomePage() {
       budget: selectedBudget,
       mood: selectedMood,
       date: selectedDate,
+      startTime: selectedStartTime,
       ...(selectedCompanion && { companion: selectedCompanion }),
       ...(selectedTravelRange && { travelRange: selectedTravelRange }),
       ...(selectedFatigue && { fatigue: selectedFatigue }),
@@ -354,18 +359,36 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Step 2: Date */}
+        {/* Step 2: Date & Time */}
         <section className="bg-white/70 backdrop-blur-sm rounded-2xl p-5 mb-4 shadow-sm border border-stone-200/60">
           <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
             <span className="bg-stone-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">2</span>
-            日付
+            日付・時間
           </h2>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full border border-stone-300 rounded-xl px-4 py-2.5 text-stone-700 text-sm focus:outline-none focus:border-stone-500 bg-white/80"
-          />
+          <div className="flex gap-2 items-center">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="flex-1 border border-stone-300 rounded-xl px-4 py-2.5 text-stone-700 text-sm focus:outline-none focus:border-stone-500 bg-white/80"
+            />
+            <input
+              type="time"
+              value={selectedStartTime}
+              onChange={(e) => setSelectedStartTime(e.target.value)}
+              className="w-32 border border-stone-300 rounded-xl px-3 py-2.5 text-stone-700 text-sm focus:outline-none focus:border-stone-500 bg-white/80"
+            />
+            <button
+              onClick={() => {
+                const now = new Date();
+                setSelectedDate(now.toISOString().split("T")[0]);
+                setSelectedStartTime(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+              }}
+              className="flex-shrink-0 px-3 py-2.5 bg-stone-700 text-white rounded-xl text-xs font-semibold hover:bg-stone-800 transition-colors whitespace-nowrap"
+            >
+              いまから！
+            </button>
+          </div>
         </section>
 
         {/* Step 3: Companion */}
