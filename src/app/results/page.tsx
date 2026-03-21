@@ -5,6 +5,124 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import Image from "next/image";
 import type { PlaceInfo } from "../api/suggest/route";
 
+interface Mission {
+  emoji: string;
+  title: string;
+  desc: string;
+}
+
+const missionsByMood: Record<string, Mission[]> = {
+  active: [
+    { emoji: "👟", title: "5,000歩あるく", desc: "今日は歩数を意識してみよう" },
+    { emoji: "🏃", title: "いつもと違う道を通る", desc: "新しいルートを発見しよう" },
+    { emoji: "🧗", title: "エレベーターを使わない", desc: "階段で体を動かそう" },
+    { emoji: "🤸", title: "30分間休まず歩き続ける", desc: "ペースを保ちながら歩こう" },
+    { emoji: "🌄", title: "高い場所から景色を眺める", desc: "展望台や坂の上を目指そう" },
+  ],
+  relaxed: [
+    { emoji: "☁️", title: "10分間空を見上げる", desc: "雲の形を観察してみよう" },
+    { emoji: "🌿", title: "公園のベンチで深呼吸", desc: "ゆっくり5回、深く息を吸おう" },
+    { emoji: "📖", title: "カフェで読書を楽しむ", desc: "お気に入りの本を1章読もう" },
+    { emoji: "🎵", title: "お気に入りの曲を聴きながら歩く", desc: "音楽で気分を上げよう" },
+    { emoji: "🧘", title: "静かな場所で5分間目を閉じる", desc: "何も考えない時間を作ろう" },
+  ],
+  social: [
+    { emoji: "📸", title: "誰かと一緒に写真を撮る", desc: "思い出の1枚を残そう" },
+    { emoji: "☕", title: "初めて入るカフェに挑戦", desc: "新しいお気に入りを見つけよう" },
+    { emoji: "😊", title: "店員さんに笑顔で話しかける", desc: "小さなつながりを大切に" },
+    { emoji: "🎮", title: "友達と何か一緒に体験する", desc: "共通の思い出を作ろう" },
+    { emoji: "🤝", title: "知らない人に道を教えてあげる", desc: "親切を実践しよう" },
+  ],
+  creative: [
+    { emoji: "🌸", title: "花を1枚写真に撮る", desc: "アングルにこだわってみよう" },
+    { emoji: "🎨", title: "気になるものを5枚写真に撮る", desc: "テーマを決めて撮影しよう" },
+    { emoji: "✏️", title: "目に入った景色をメモに書く", desc: "言葉で景色を描いてみよう" },
+    { emoji: "🔍", title: "ストリートアートを探す", desc: "まちのアートを発見しよう" },
+    { emoji: "🍃", title: "気に入った葉っぱや石を拾う", desc: "自然のオブジェを集めよう" },
+  ],
+  nature: [
+    { emoji: "🌺", title: "花を1輪写真に撮る", desc: "季節の花を見つけよう" },
+    { emoji: "🐦", title: "鳥の声を聞き止める", desc: "何種類の鳥の声がするか数えよう" },
+    { emoji: "🌳", title: "大きな木を見つけて触れる", desc: "樹皮の感触を感じよう" },
+    { emoji: "🪲", title: "小さな生き物を観察する", desc: "虫や小動物を探してみよう" },
+    { emoji: "🌅", title: "水辺を探して立ち寄る", desc: "川や池のほとりで一息つこう" },
+  ],
+  foodie: [
+    { emoji: "🍜", title: "食べたことのないメニューを頼む", desc: "冒険心でオーダーしよう" },
+    { emoji: "📷", title: "料理の写真を撮ってから食べる", desc: "美しい1枚を残そう" },
+    { emoji: "🏪", title: "初めて入るお店に挑戦", desc: "新しい出会いがあるかも" },
+    { emoji: "🧁", title: "気になるスイーツを買う", desc: "デザートで気分を上げよう" },
+    { emoji: "🛒", title: "地元の食材を1つ買って帰る", desc: "その土地の味を持ち帰ろう" },
+  ],
+};
+
+const defaultMissions: Mission[] = [
+  { emoji: "📸", title: "今日の景色を1枚撮る", desc: "お気に入りの瞬間を残そう" },
+  { emoji: "☕", title: "知らないカフェに入ってみる", desc: "新しいお気に入りを探そう" },
+  { emoji: "🚶", title: "3,000歩あるく", desc: "歩数を意識して動いてみよう" },
+];
+
+function pickMissions(mood: string | null, time: string | null): Mission[] {
+  const pool = (mood && missionsByMood[mood]) ? missionsByMood[mood] : defaultMissions;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const count = time === "allday" ? 3 : time === "halfday" ? 3 : 2;
+  return shuffled.slice(0, count);
+}
+
+function MissionCard({ missions }: { missions: Mission[] }) {
+  const [done, setDone] = useState<boolean[]>(missions.map(() => false));
+
+  const toggle = (i: number) => {
+    setDone((prev) => {
+      const next = [...prev];
+      next[i] = !next[i];
+      return next;
+    });
+  };
+
+  const allDone = done.every(Boolean);
+
+  return (
+    <div className="bg-white/75 backdrop-blur-sm rounded-2xl p-5 shadow-sm border border-stone-200/60 mb-5">
+      <h2 className="text-sm font-semibold text-stone-600 mb-3 flex items-center gap-2 tracking-wider uppercase">
+        <span className="text-base">🎯</span>
+        今日のミッション
+        {allDone && (
+          <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium normal-case tracking-normal">
+            全達成！
+          </span>
+        )}
+      </h2>
+      <div className="space-y-2">
+        {missions.map((mission, i) => (
+          <button
+            key={i}
+            onClick={() => toggle(i)}
+            className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border text-left transition-all ${
+              done[i]
+                ? "bg-stone-50 border-stone-300 opacity-60"
+                : "bg-white/60 border-stone-200 hover:border-stone-400"
+            }`}
+          >
+            <span className="text-xl flex-shrink-0">{mission.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold leading-snug ${done[i] ? "line-through text-stone-400" : "text-stone-800"}`}>
+                {mission.title}
+              </p>
+              <p className="text-xs text-stone-400 mt-0.5">{mission.desc}</p>
+            </div>
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+              done[i] ? "bg-stone-700 border-stone-700" : "border-stone-300"
+            }`}>
+              {done[i] && <span className="text-white text-[10px]">✓</span>}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 interface Suggestion {
   title: string;
   description: string;
@@ -384,6 +502,8 @@ function ResultsContent() {
   }, [lat, lng, city, prefecture, time, budget, mood, date, companion, travelRange, fatigue, retryKey]);
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const missions = useState(() => pickMissions(mood, time))[0];
 
   // 地図用マーカーパラメータ生成（lat/lngを持つスポット最大8件）
   const mapMarkersParam = nearbyPlaces
@@ -504,6 +624,9 @@ function ResultsContent() {
             </button>
           </div>
         )}
+
+        {/* Mission card — shown once data is ready */}
+        {data && <MissionCard missions={missions} />}
 
         {/* Results */}
         {data && (
