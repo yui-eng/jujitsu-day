@@ -624,7 +624,7 @@ function ResultsContent() {
               <p className="text-xs font-semibold text-stone-500 mb-3 tracking-wider uppercase">シェアする</p>
               <div className="flex gap-2">
                 <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`今日は${locationLabel}でこんなプランを立てました ✨\n${data.summary}\n\n#Joie #充実した一日`)}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`今日のお出かけスポットをシェア！🗺️\n📍 ${locationLabel}\n${data.summary}\n#Joie #充実した一日`)}&url=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-black text-white rounded-xl text-sm font-semibold hover:bg-stone-800 transition-colors"
@@ -632,7 +632,7 @@ function ResultsContent() {
                   𝕏 ポスト
                 </a>
                 <a
-                  href={`https://line.me/R/msg/text/?${encodeURIComponent(`今日は${locationLabel}でこんなプランを立てました ✨\n${data.summary}\n\n#Joie`)}`}
+                  href={`https://line.me/R/msg/text/?${encodeURIComponent(`今日のお出かけスポットをシェア！🗺️\n📍 ${locationLabel}\n${data.summary}\n#Joie\n${typeof window !== "undefined" ? window.location.href : ""}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#06C755] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
