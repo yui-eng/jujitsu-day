@@ -227,6 +227,7 @@ function ResultsContent() {
   const [showMap, setShowMap] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState<PlaceInfo | null>(null);
+  const [copied, setCopied] = useState(false);
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
   const handleRegenerate = () => {
@@ -618,8 +619,41 @@ function ResultsContent() {
               <TimelineView suggestions={data.suggestions} categoryConfig={categoryConfig} />
             )}
 
+            {/* Share */}
+            <div className="mt-8 bg-white/70 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-stone-200/60">
+              <p className="text-xs font-semibold text-stone-500 mb-3 tracking-wider uppercase">シェアする</p>
+              <div className="flex gap-2">
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`今日は${locationLabel}でこんなプランを立てました ✨\n${data.summary}\n\n#Joie #充実した一日`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-black text-white rounded-xl text-sm font-semibold hover:bg-stone-800 transition-colors"
+                >
+                  𝕏 ポスト
+                </a>
+                <a
+                  href={`https://line.me/R/msg/text/?${encodeURIComponent(`今日は${locationLabel}でこんなプランを立てました ✨\n${data.summary}\n\n#Joie`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-[#06C755] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+                >
+                  LINE
+                </a>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(window.location.href);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-stone-100 text-stone-700 rounded-xl text-sm font-semibold hover:bg-stone-200 transition-colors border border-stone-200"
+                >
+                  {copied ? "✅ コピー済" : "🔗 リンクコピー"}
+                </button>
+              </div>
+            </div>
+
             {/* Retry */}
-            <div className="mt-8 flex gap-3 justify-center">
+            <div className="mt-4 flex gap-3 justify-center">
               <button
                 onClick={handleRegenerate}
                 className="bg-white/80 border border-stone-300 text-stone-700 px-6 py-3 rounded-2xl font-semibold hover:bg-white transition-all shadow-sm text-sm active:scale-[0.98]"
