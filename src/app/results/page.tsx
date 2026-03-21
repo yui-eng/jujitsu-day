@@ -87,20 +87,36 @@ function FadeInCard({
           <p className="text-xs text-gray-500 leading-relaxed">💡 {suggestion.tips}</p>
         </div>
       )}
-      {(suggestion.mapsUrl || suggestion.websiteUrl) && (
-        <div className="mt-3 pt-3 border-t border-gray-100 ml-9 flex gap-2 flex-wrap">
-          {suggestion.mapsUrl && (
-            <a href={suggestion.mapsUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
-              🗺️ Google Mapsで見る
-            </a>
-          )}
-          {suggestion.websiteUrl && (
-            <a href={suggestion.websiteUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium">
-              🌐 公式サイト
-            </a>
-          )}
+      {(suggestion.mapsUrl || suggestion.mapsSearchQuery || suggestion.lat) && (
+        <div className="mt-3 pt-3 border-t border-gray-100 ml-9">
+          <a
+            href={
+              suggestion.lat && suggestion.lng
+                ? `https://www.google.com/maps/dir/?api=1&destination=${suggestion.lat},${suggestion.lng}&travelmode=transit`
+                : suggestion.mapsSearchQuery
+                ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(suggestion.mapsSearchQuery)}&travelmode=transit`
+                : suggestion.mapsUrl!
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2.5 bg-stone-800 text-white rounded-xl text-sm font-semibold hover:bg-stone-900 transition-colors active:scale-[0.98] mb-2"
+          >
+            📍 ここに行く！
+          </a>
+          <div className="flex gap-2 flex-wrap">
+            {suggestion.mapsUrl && (
+              <a href={suggestion.mapsUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-3 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium">
+                🗺️ Mapsで見る
+              </a>
+            )}
+            {suggestion.websiteUrl && (
+              <a href={suggestion.websiteUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-3 py-1.5 rounded-full hover:bg-green-100 transition-colors font-medium">
+                🌐 公式サイト
+              </a>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -154,20 +170,36 @@ function TimelineView({ suggestions, categoryConfig }: { suggestions: Suggestion
                       <p className="text-xs text-gray-500 leading-relaxed">💡 {s.tips}</p>
                     </div>
                   )}
-                  {(s.mapsUrl || s.websiteUrl) && (
-                    <div className="mt-2 pt-2 border-t border-gray-100 ml-7 flex gap-2 flex-wrap">
-                      {s.mapsUrl && (
-                        <a href={s.mapsUrl} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors font-medium">
-                          🗺️ Google Mapsで見る
-                        </a>
-                      )}
-                      {s.websiteUrl && (
-                        <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-2.5 py-1 rounded-full hover:bg-green-100 transition-colors font-medium">
-                          🌐 公式サイト
-                        </a>
-                      )}
+                  {(s.mapsUrl || s.mapsSearchQuery || s.lat) && (
+                    <div className="mt-2 pt-2 border-t border-gray-100 ml-7">
+                      <a
+                        href={
+                          s.lat && s.lng
+                            ? `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=transit`
+                            : s.mapsSearchQuery
+                            ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.mapsSearchQuery)}&travelmode=transit`
+                            : s.mapsUrl!
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2 bg-stone-800 text-white rounded-xl text-xs font-semibold hover:bg-stone-900 transition-colors mb-1.5"
+                      >
+                        📍 ここに行く！
+                      </a>
+                      <div className="flex gap-2 flex-wrap">
+                        {s.mapsUrl && (
+                          <a href={s.mapsUrl} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 bg-blue-50 text-blue-600 text-xs px-2.5 py-1 rounded-full hover:bg-blue-100 transition-colors font-medium">
+                            🗺️ Mapsで見る
+                          </a>
+                        )}
+                        {s.websiteUrl && (
+                          <a href={s.websiteUrl} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 bg-green-50 text-green-600 text-xs px-2.5 py-1 rounded-full hover:bg-green-100 transition-colors font-medium">
+                            🌐 公式サイト
+                          </a>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
