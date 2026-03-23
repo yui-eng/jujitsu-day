@@ -18,8 +18,22 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "充実DAY - 暇な1日をもっと楽しく",
-  description: "現在地・時間・予算・気分をもとに、今日の充実プランをAIが提案します。季節のイベントも含めてパーソナルな提案をお届けします。",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  title: "Joie - 今日のお出かけプラン",
+  description: "現在地・時間・予算・気分をもとに、今日の充実プランをAIが提案します。",
+  openGraph: {
+    title: "Joie - 今日のお出かけプラン",
+    description: "現在地・時間・予算・気分をもとに、今日の充実プランをAIが提案します。",
+    images: [{ url: "/bg.jpg", width: 1200, height: 630 }],
+    type: "website",
+    locale: "ja_JP",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Joie - 今日のお出かけプラン",
+    description: "現在地・時間・予算・気分をもとに、今日の充実プランをAIが提案します。",
+    images: ["/bg.jpg"],
+  },
 };
 
 export default function RootLayout({
