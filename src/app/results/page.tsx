@@ -25,6 +25,29 @@ interface SuggestResponse {
   weather?: string;
 }
 
+export interface SavedPlan {
+  id: string;
+  savedAt: string;
+  params: {
+    location: string;
+    date: string;
+    time: string;
+    budget: string;
+    mood: string;
+  };
+  data: SuggestResponse;
+}
+
+const SAVED_PLANS_KEY = "joie_saved_plans";
+
+function loadSavedPlans(): SavedPlan[] {
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_PLANS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
 function FadeInCard({
   suggestion,
   index,
@@ -143,6 +166,7 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  const [saved, setSaved] = useState(false);
   const streamBoxRef = useRef<HTMLDivElement>(null);
 
   const lat = searchParams.get("lat");
@@ -249,6 +273,26 @@ function ResultsContent() {
 
   const locationLabel = [city, prefecture].filter(Boolean).join("、") || "現在地";
 
+  const handleSave = () => {
+    if (!data) return;
+    const plan: SavedPlan = {
+      id: Date.now().toString(),
+      savedAt: new Date().toISOString(),
+      params: {
+        location: locationLabel,
+        date: date || "",
+        time: time || "",
+        budget: budget || "",
+        mood: mood || "",
+      },
+      data,
+    };
+    const plans = loadSavedPlans();
+    plans.unshift(plan);
+    localStorage.setItem(SAVED_PLANS_KEY, JSON.stringify(plans));
+    setSaved(true);
+  };
+
   return (
     <main className="min-h-screen">
       <div className="max-w-lg mx-auto px-4 py-6 pb-12">
@@ -348,8 +392,19 @@ function ResultsContent() {
               })}
             </div>
 
-            {/* Retry */}
-            <div className="mt-8 text-center">
+            {/* Save & Retry */}
+            <div className="mt-8 flex flex-col items-center gap-3">
+              <button
+                onClick={handleSave}
+                disabled={saved}
+                className={`w-full py-3 rounded-2xl font-semibold text-sm tracking-widest uppercase transition-all shadow-md active:scale-[0.98] ${
+                  saved
+                    ? "bg-emerald-100 text-emerald-700 border border-emerald-300 cursor-default"
+                    : "bg-white text-stone-800 border border-stone-300 hover:bg-stone-50"
+                }`}
+              >
+                {saved ? "✓ 保存済み" : "🔖 このプランを保存する"}
+              </button>
               <button
                 onClick={() => router.push("/")}
                 className="bg-stone-800 text-white px-8 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
