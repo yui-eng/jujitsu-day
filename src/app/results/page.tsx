@@ -864,20 +864,22 @@ function ResultsContent() {
                 }`}
               >
                 {saved ? "✓ 保存済み" : "🔖 このプランを保存する"}
-            {/* Retry */}
-            <div className="mt-4 flex gap-3 justify-center">
-              <button
-                onClick={handleRegenerate}
-                className="bg-white/80 border border-stone-300 text-stone-700 px-6 py-3 rounded-2xl font-semibold hover:bg-white transition-all shadow-sm text-sm active:scale-[0.98]"
-              >
-                🔄 再生成
               </button>
-              <button
-                onClick={() => router.push("/")}
-                className="bg-stone-800 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
-              >
-                別の条件で探す
-              </button>
+              {/* Retry */}
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleRegenerate}
+                  className="bg-white/80 border border-stone-300 text-stone-700 px-6 py-3 rounded-2xl font-semibold hover:bg-white transition-all shadow-sm text-sm active:scale-[0.98]"
+                >
+                  🔄 再生成
+                </button>
+                <button
+                  onClick={() => router.push("/")}
+                  className="bg-stone-800 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
+                >
+                  別の条件で探す
+                </button>
+              </div>
             </div>
           </>
         )}
