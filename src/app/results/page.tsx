@@ -148,6 +148,29 @@ interface SuggestResponse {
   weather?: string;
 }
 
+export interface SavedPlan {
+  id: string;
+  savedAt: string;
+  params: {
+    location: string;
+    date: string;
+    time: string;
+    budget: string;
+    mood: string;
+  };
+  data: SuggestResponse;
+}
+
+const SAVED_PLANS_KEY = "joie_saved_plans";
+
+function loadSavedPlans(): SavedPlan[] {
+  try {
+    return JSON.parse(localStorage.getItem(SAVED_PLANS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
 function FadeInCard({
   suggestion,
   index,
@@ -371,6 +394,7 @@ function ResultsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [streamingText, setStreamingText] = useState("");
+  const [saved, setSaved] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "timeline">("card");
   const [nearbyPlaces, setNearbyPlaces] = useState<PlaceInfo[]>([]);
@@ -545,6 +569,26 @@ function ResultsContent() {
       .join("|");
     return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : ""}&travelmode=transit`;
   })();
+
+  const handleSave = () => {
+    if (!data) return;
+    const plan: SavedPlan = {
+      id: Date.now().toString(),
+      savedAt: new Date().toISOString(),
+      params: {
+        location: locationLabel,
+        date: date || "",
+        time: time || "",
+        budget: budget || "",
+        mood: mood || "",
+      },
+      data,
+    };
+    const plans = loadSavedPlans();
+    plans.unshift(plan);
+    localStorage.setItem(SAVED_PLANS_KEY, JSON.stringify(plans));
+    setSaved(true);
+  };
 
   return (
     <main className="min-h-screen">
@@ -808,20 +852,34 @@ function ResultsContent() {
               </div>
             </div>
 
-            {/* Retry */}
-            <div className="mt-4 flex gap-3 justify-center">
+            {/* Save & Retry */}
+            <div className="mt-8 flex flex-col items-center gap-3">
               <button
-                onClick={handleRegenerate}
-                className="bg-white/80 border border-stone-300 text-stone-700 px-6 py-3 rounded-2xl font-semibold hover:bg-white transition-all shadow-sm text-sm active:scale-[0.98]"
+                onClick={handleSave}
+                disabled={saved}
+                className={`w-full py-3 rounded-2xl font-semibold text-sm tracking-widest uppercase transition-all shadow-md active:scale-[0.98] ${
+                  saved
+                    ? "bg-emerald-100 text-emerald-700 border border-emerald-300 cursor-default"
+                    : "bg-white text-stone-800 border border-stone-300 hover:bg-stone-50"
+                }`}
               >
-                🔄 再生成
+                {saved ? "✓ 保存済み" : "🔖 このプランを保存する"}
               </button>
-              <button
-                onClick={() => router.push("/")}
-                className="bg-stone-800 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
-              >
-                別の条件で探す
-              </button>
+              {/* Retry */}
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={handleRegenerate}
+                  className="bg-white/80 border border-stone-300 text-stone-700 px-6 py-3 rounded-2xl font-semibold hover:bg-white transition-all shadow-sm text-sm active:scale-[0.98]"
+                >
+                  🔄 再生成
+                </button>
+                <button
+                  onClick={() => router.push("/")}
+                  className="bg-stone-800 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-stone-900 transition-all shadow-md tracking-widest uppercase text-sm active:scale-[0.98]"
+                >
+                  別の条件で探す
+                </button>
+              </div>
             </div>
           </>
         )}

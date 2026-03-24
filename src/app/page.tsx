@@ -295,6 +295,15 @@ export default function HomePage() {
           </p>
         )}
 
+        {/* Saved plans link */}
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => router.push("/saved")}
+            className="text-stone-500 text-sm underline underline-offset-4 hover:text-stone-800 transition-colors tracking-wide"
+          >
+            🔖 保存したプランを見る
+          </button>
+        </div>
       </div>
     </main>
   );
